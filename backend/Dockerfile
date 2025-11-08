@@ -1,32 +1,33 @@
-# Stage 1: Build the application with Maven
-# We use a specific Java 17-enabled image
-FROM maven:3.9-eclipse-temurin-17 AS build
+# STAGE 1: The "Builder"
+# This stage builds your code into a .jar file
+FROM maven:3.8.5-openjdk-17 AS builder
 
-# Set the working directory inside the container
-WORKDIR /app
+# Set the working directory
+WORKDIR /build
 
 # Copy the pom.xml file first to cache dependencies
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
-# Copy the rest of the source code
+# Copy the rest of your source code
 COPY src ./src
 
-# Build the application, package it into a .jar file
+# Build the application!
 RUN mvn package -DskipTests
 
-# Stage 2: Create the final, lightweight image
-# Use a slim Java 17 image which is smaller
-FROM eclipse-temurin:17-jre-focal
 
+# STAGE 2: The "Runner"
+# This stage takes the .jar from the "Builder" and runs it
+FROM eclipse-temurin:17-jdk-jammy
+
+# Set the working directory
 WORKDIR /app
 
-# Copy the .jar file from the 'build' stage
-# This artifact name 'backend-0.0.1-SNAPSHOT.jar' is set in your pom.xml
-COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
+# Copy ONLY the built jar file from the "builder" stage
+COPY --from=builder /build/target/*.jar app.jar
 
-# Expose the port your application runs on
+# Expose the port
 EXPOSE 8080
 
-# The command to run your application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the jar file
+ENTRYPOINT ["java","-jar","app.jar"]

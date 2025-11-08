@@ -1,9 +1,8 @@
 spring:
-  #1. PostgreSQL Configuration (for Users, Trips, Bookings)
   datasource:
-    url: "jdbc:postgresql://roamrush-postgres:5432/roamrush_db"
-    username: user
-    password: password
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -12,11 +11,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  security:
-    user:
-      name: "satya"   # <-- Use this as the username
-      password: "123" # <-- Use this as the password
-  #2. MongoDB Configuration (for Social Feed, Posts, Comments)
+
   data:
     mongodb:
-      uri: mongodb://swapnil:swap123@localhost:27017/roamrush_social?authSource=admin
+      host: ${MONGO_HOST}
+      port: ${MONGO_PORT}
+      database: ${MONGO_DB_NAME}
+      username: ${MONGO_USER}
+      password: ${MONGO_PASS}
+      authentication-database: admin 
+
+jwt:
+  secret: ${JWT_SECRET}
