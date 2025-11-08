@@ -1,26 +1,23 @@
-version: '3.8'
 
 services:
-  # 1. PostgreSQL Database (for Users, Trips, etc.)
+  # 1. PostgreSQL Database
   postgres:
     image: postgres:15
     container_name: roamrush-postgres
     environment:
-      # These credentials MUST match your application.yaml
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: roamrush_db
     ports:
-      - "5432:5432" # Connects your PC's port 5432 to the container's
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # 2. MongoDB Database (for Social Feed)
+  # 2. MongoDB Database
   mongo:
     image: mongo:latest
     container_name: roamrush-mongo
     environment:
-      # These credentials MUST match your application.yaml
       MONGO_INITDB_ROOT_USERNAME: swapnil
       MONGO_INITDB_ROOT_PASSWORD: swap123
     ports:
@@ -28,32 +25,31 @@ services:
     volumes:
       - mongo_data:/data/db
 
-  # 3. Backend API (Spring Boot)
+  # 3. Backend API
   backend:
     build:
-      context: ./backend # Tells Docker to find the Dockerfile in /backend
+      context: ./backend 
     container_name: roamrush-backend
-    restart: unless-stopped
+    # restart: unless-stopped
     depends_on:
-      - postgres # Won't start until postgres is ready
+      - postgres
       - mongo
     ports:
-      - "8080:8080" # Connects your PC's port 8080 to the app
+      - "8080:8080"
     environment:
-      # We override the localhost URLs from application.yaml
-      # to use the Docker service names ('postgres' and 'mongo')
-      DB_HOST: postgres
+      # These variables will be INJECTED into application.yaml
+      DB_HOST: postgres # The service name, not 'roamrush-postgres' or 'localhost'
       DB_PORT: 5432
       DB_NAME: roamrush_db
-      DB_USER: swapnil
-      DB_PASS: swap123
-      MONGO_HOST: mongo
+      DB_USER: user
+      DB_PASS: password
+      MONGO_HOST: mongo # The service name, not 'localhost'
       MONGO_PORT: 27017
       MONGO_DB_NAME: roamrush_social
-      MONGO_USER: user
-      MONGO_PASS: password
-
-# We will add the 'frontend' service here later
+      MONGO_USER: swapnil
+      MONGO_PASS: swap123
+      # This is the NEW, CRITICAL part for your JWT "middleware"
+      JWT_SECRET: "uGFiTq2R3YIAR7q80A+bBw/NnZJgVLc62eD9jR8cEHQ="
 
 volumes:
   postgres_data:
