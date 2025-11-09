@@ -1,0 +1,140 @@
+name: CD - Deploy to PRODUCTION (AWS ECS)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # --- 1. SET IMAGE TAG ---
+  prepare:
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      image_tag: ${{ steps.image_tag.outputs.tag }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Set image tag
+        id: image_tag
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "tag=$(date +'%Y%m%d%H%M%S')-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+  # --- 2. BUILD & PUSH BACKEND ---
+  build-and-push-backend:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      image: ${{ steps.build-and-push.outputs.image }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build, tag, and push backend image to ECR
+        id: build-and-push
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  # --- 3. BUILD & PUSH FRONTEND ---
+  build-and-push-frontend:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      image: ${{ steps.build-and-push.outputs.image }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build, tag, and push frontend image to ECR
+        id: build-and-push
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f frontend/Dockerfile ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  # --- 4. DEPLOY BACKEND ---
+  deploy-backend:
+    needs: [prepare, build-and-push-backend]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > task-definition.json
+      - name: Create new Task Definition with new image
+        id: task-def
+        run: |
+          NEW_TASK_DEF_JSON=$(cat task-definition.json | jq --arg IMAGE "${{ needs.build-and-push-backend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF_JSON" --query taskDefinition.taskDefinitionArn --output text)
+          echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
+      - name: Deploy new Task Definition to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service ${{ secrets.ECS_SERVICE_NAME_BACKEND }} \
+            --task-definition ${{ steps.task-def.outputs.task_def_arn }} \
+            --force-new-deployment
+
+  # --- 5. DEPLOY FRONTEND ---
+  deploy-frontend:
+    needs: [prepare, build-and-push-frontend]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > task-definition.json
+      - name: Create new Task Definition with new image
+        id: task-def
+        run: |
+          NEW_TASK_DEF_JSON=$(cat task-definition.json | jq --arg IMAGE "${{ needs.build-and-push-frontend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF_JSON" --query taskDefinition.taskDefinitionArn --output text)
+          echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
+      - name: Deploy new Task Definition to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service ${{ secrets.ECS_SERVICE_NAME_FRONTEND }} \
+            --task-definition ${{ steps.task-def.outputs.task_def_arn }} \
+            --force-new-deployment
