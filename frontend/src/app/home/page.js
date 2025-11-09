@@ -2,6 +2,7 @@
 
 import Navbar from '@/components/Navbar'
 import { Heart, MessageCircle, Share2, MapPin, Calendar } from 'lucide-react'
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const travelPosts = [
   {
@@ -56,6 +57,7 @@ const travelPosts = [
 
 export default function HomePage() {
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
@@ -136,5 +138,6 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }
