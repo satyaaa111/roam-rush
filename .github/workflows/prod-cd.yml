@@ -11,9 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     outputs:
-      registry: ${{ steps.login-ecr.outputs.registry }}     # <-- FIX 1
-      image_tag: ${{ steps.image_tag.outputs.tag }}        # <-- FIX 2
+      registry: ${{ steps.login-ecr.outputs.registry }}
+      image_tag: ${{ steps.image_tag.outputs.tag }}
     steps:
+      # --- THIS IS THE FIX ---
+      - name: Check out code
+        uses: actions/checkout@v4
+      # -----------------------
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -39,9 +44,9 @@ jobs:
       - name: Build, tag, and push backend image to ECR
         id: build-and-push
         env:
-          ECR_REGISTRY: ${{ needs.configure-aws.outputs.registry }}     # <-- FIX 3
+          ECR_REGISTRY: ${{ needs.configure-aws.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
-          IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}        # <-- FIX 4
+          IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -59,9 +64,9 @@ jobs:
       - name: Build, tag, and push frontend image to ECR
         id: build-and-push
         env:
-          ECR_REGISTRY: ${{ needs.configure-aws.outputs.registry }}     # <-- FIX 3
+          ECR_REGISTRY: ${{ needs.configure-aws.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
-          IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}        # <-- FIX 4
+          IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f frontend/Dockerfile ./frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -73,7 +78,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      # ... (This part was already correct) ...
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Download task definition
         run: |
           aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > task-definition.json
@@ -97,7 +107,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      # ... (This part was already correct) ...
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Download task definition
         run: |
           aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > task-definition.json
