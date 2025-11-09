@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   /* config options here */
   // This rewrites rule acts as a proxy during development
   async rewrites() {
