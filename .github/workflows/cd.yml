@@ -3,12 +3,19 @@ name: CD - Deploy to Staging (AWS ECS)
 on:
   push:
     branches:
-      - develop
+      - develop # This is correct, it only runs on a push to develop
 
 jobs:
   # --- 1. CONFIGURE AWS ---
   configure-aws:
     runs-on: ubuntu-latest
+    
+    # --- THIS IS THE FIX ---
+    # We must tell this job to use the "staging" environment
+    # so it can find the AWS secrets.
+    environment: staging
+    # -----------------------
+    
     outputs:
       image_tag: ${{ steps.image_tag.outputs.tag }}
     steps:
@@ -23,56 +30,62 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
       - name: Set image tag
         id: image_tag
-        run: echo "tag=$(date +'%Y%m%d%H%M%S')-${{ github.sha_short }}" >> $GITHUB_OUTPUT
+        run: echo "tag=$(date +'%Y%d%m%H%M%S')-${{ github.sha_short }}" >> $GITHUB_OUTPUT
 
   # --- 2. BUILD & PUSH BACKEND ---
   build-and-push-backend:
     needs: configure-aws
     runs-on: ubuntu-latest
+    environment: staging # This one was already correct
+    outputs:
+      image: ${{ steps.build-and-push.outputs.image }}
     steps:
       - uses: actions/checkout@v4
       - name: Build, tag, and push backend image to ECR
+        id: build-and-push
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
           IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-    outputs:
-      image: ${{ steps.set-image-name.outputs.image }}
 
   # --- 3. BUILD & PUSH FRONTEND ---
   build-and-push-frontend:
     needs: configure-aws
     runs-on: ubuntu-latest
+    environment: staging # This one was already correct
+    outputs:
+      image: ${{ steps.build-and-push.outputs.image }}
     steps:
       - uses: actions/checkout@v4
       - name: Build, tag, and push frontend image to ECR
+        id: build-and-push
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
           IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f frontend/Dockerfile ./frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-    outputs:
-      image: ${{ steps.set-image-name.outputs.image }}
 
   # --- 4. DEPLOY BACKEND ---
   deploy-backend:
     needs: [configure-aws, build-and-push-backend]
     runs-on: ubuntu-latest
+    environment: staging # This one was already correct
     steps:
-      - name: Create new Task Definition
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > task-definition.json
+          
+      - name: Create new Task Definition with new image
         id: task-def
         run: |
-          # Get the existing task definition
-          TASK_DEF_JSON=$(aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition)
-          # Create a new task definition with the new image
-          NEW_TASK_DEF_JSON=$(echo $TASK_DEF_JSON | jq --arg IMAGE "${{ needs.build-and-push-backend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
+          NEW_TASK_DEF_JSON=$(cat task-definition.json | jq --arg IMAGE "${{ needs.build-and-push-backend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF_JSON" --query taskDefinition.taskDefinitionArn --output text)
           echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
           
@@ -88,12 +101,16 @@ jobs:
   deploy-frontend:
     needs: [configure-aws, build-and-push-frontend]
     runs-on: ubuntu-latest
+    environment: staging # This one was already correct
     steps:
-      - name: Create new Task Definition
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > task-definition.json
+
+      - name: Create new Task Definition with new image
         id: task-def
         run: |
-          TASK_DEF_JSON=$(aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition)
-          NEW_TASK_DEF_JSON=$(echo $TASK_DEF_JSON | jq --arg IMAGE "${{ needs.build-and-push-frontend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
+          NEW_TASK_DEF_JSON=$(cat task-definition.json | jq --arg IMAGE "${{ needs.build-and-push-frontend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF_JSON" --query taskDefinition.taskDefinitionArn --output text)
           echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
 
