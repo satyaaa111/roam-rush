@@ -6,20 +6,17 @@ on:
       - develop
 
 jobs:
-  # --- 1. CONFIGURE AWS ---
-  configure-aws:
+  # We will only have ONE job that does everything in order.
+  build-and-deploy-staging:
     runs-on: ubuntu-latest
     environment: staging
-    outputs:
-      registry: ${{ steps.login-ecr.outputs.registry }}
-      image_tag: ${{ steps.image_tag.outputs.tag }}
+
     steps:
-      # --- THIS IS THE FIX ---
-      # We must check out the code so we can get the git hash
+      # 1. Get the code
       - name: Check out code
         uses: actions/checkout@v4
-      # -----------------------
 
+      # 2. Configure AWS Credentials (used by all steps below)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -27,118 +24,78 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
       
+      # 3. Login to ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # --- THIS IS THE FIX ---
-      # This correctly gets the 7-char hash from ${{ github.sha }}
+      # 4. Set a valid image tag
       - name: Set image tag
         id: image_tag
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           echo "tag=$(date +'%Y%m%d%H%M%S')-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
-  # --- 2. BUILD & PUSH BACKEND ---
-  build-and-push-backend:
-    needs: configure-aws
-    runs-on: ubuntu-latest
-    environment: staging
-    outputs:
-      image: ${{ steps.build-and-push.outputs.image }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build, tag, and push backend image to ECR
-        id: build-and-push
+      # 5. Build and Push Backend
+      - name: Build and push backend image
+        id: build-backend
         env:
-          ECR_REGISTRY: ${{ needs.configure-aws.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
-          IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}
+          IMAGE_TAG: ${{ steps.image_tag.outputs.tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-  # --- 3. BUILD & PUSH FRONTEND ---
-  build-and-push-frontend:
-    needs: configure-aws
-    runs-on: ubuntu-latest
-    environment: staging
-    outputs:
-      image: ${{ steps.build-and-push.outputs.image }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build, tag, and push frontend image to ECR
-        id: build-and-push
+      # 6. Build and Push Frontend
+      - name: Build and push frontend image
+        id: build-frontend
         env:
-          ECR_REGISTRY: ${{ needs.configure-aws.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
-          IMAGE_TAG: ${{ needs.configure-aws.outputs.image_tag }}
+          IMAGE_TAG: ${{ steps.image_tag.outputs.tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f frontend/Dockerfile ./frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-  # --- 4. DEPLOY BACKEND ---
-  deploy-backend:
-    needs: [configure-aws, build-and-push-backend]
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      # --- THIS IS THE FIX ---
-      # Each job runs on a fresh machine and needs its own credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          
-      - name: Download task definition
+      # 7. Deploy Backend
+      - name: Download backend task definition
         run: |
-          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > task-definition.json
-      - name: Create new Task Definition with new image
-        id: task-def
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_BACKEND }} --query taskDefinition > task-definition-backend.json
+      
+      - name: Create new backend task definition
+        id: task-def-backend
         run: |
-          NEW_TASK_DEF_JSON=$(cat task-definition.json | jq --arg IMAGE "${{ needs.build-and-push-backend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
+          NEW_TASK_DEF_JSON=$(cat task-definition-backend.json | jq --arg IMAGE "${{ steps.build-backend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF_JSON" --query taskDefinition.taskDefinitionArn --output text)
           echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
-      - name: Deploy new Task Definition to ECS
+
+      - name: Deploy backend to ECS
         run: |
           aws ecs update-service \
             --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
             --service ${{ secrets.ECS_SERVICE_NAME_BACKEND }} \
-            --task-definition ${{ steps.task-def.outputs.task_def_arn }} \
+            --task-definition ${{ steps.task-def-backend.outputs.task_def_arn }} \
             --force-new-deployment
 
-  # --- 5. DEPLOY FRONTEND ---
-  deploy-frontend:
-    needs: [configure-aws, build-and-push-frontend]
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      # --- THIS IS THE FIX ---
-      # Each job runs on a fresh machine and needs its own credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          
-      - name: Download task definition
+      # 8. Deploy Frontend
+      - name: Download frontend task definition
         run: |
-          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > task-definition.json
-      - name: Create new Task Definition with new image
-        id: task-def
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION_FRONTEND }} --query taskDefinition > task-definition-frontend.json
+
+      - name: Create new frontend task definition
+        id: task-def-frontend
         run: |
-          NEW_TASK_DEF_JSON=$(cat task-definition.json | jq --arg IMAGE "${{ needs.build-and-push-frontend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
+          NEW_TASK_DEF_JSON=$(cat task-definition-frontend.json | jq --arg IMAGE "${{ steps.build-frontend.outputs.image }}" '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes)')
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF_JSON" --query taskDefinition.taskDefinitionArn --output text)
           echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
-      - name: Deploy new Task Definition to ECS
+
+      - name: Deploy frontend to ECS
         run: |
           aws ecs update-service \
             --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
             --service ${{ secrets.ECS_SERVICE_NAME_FRONTEND }} \
-            --task-definition ${{ steps.task-def.outputs.task_def_arn }} \
+            --task-definition ${{ steps.task-def-frontend.outputs.task_def_arn }} \
             --force-new-deployment
