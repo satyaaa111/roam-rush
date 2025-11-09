@@ -1,0 +1,139 @@
+# ===============================
+# 🌐 FRONTEND (React / Next.js / Vite)
+# ===============================
+
+# Dependencies
+frontend/node_modules/
+frontend/.pnp/
+frontend/.pnp.js
+
+# Production build
+frontend/build/
+frontend/.next/
+frontend/out/
+
+# Logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Editor folders
+frontend/.DS_Store
+frontend/.idea/
+frontend/.vscode/
+frontend/dist/
+
+# ===============================
+# ☕ BACKEND (Java Spring Boot + Maven)
+# ===============================
+
+# Compiled class files
+backend/target/
+backend/target/*
+
+# Maven-specific
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# Logs
+backend/logs/
+backend/*.log
+
+# IDEs
+backend/.idea/
+backend/.project
+backend/.classpath
+backend/.settings/
+backend/.vscode/
+backend/.DS_Store
+
+# Environment configs
+backend/.env
+backend/.env.local
+backend/application-dev.yaml
+backend/application-prod.yaml
+
+# ===============================
+# 🐳 DOCKER
+# ===============================
+
+# Local environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.example
+
+# Docker volumes and build cache
+**/docker-compose.override.yml
+**/docker-data/
+**/tmp/
+**/*.pid
+
+# ===============================
+# ☁️ TERRAFORM
+# ===============================
+
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/crash.log
+terraform/override.tf
+terraform/override.tf.json
+terraform/*.auto.tfvars
+terraform/*.tfvars
+
+# ===============================
+# 🧾 DOCS + GITHUB WORKFLOWS
+# ===============================
+
+# Build caches or previews (if docs built with Docusaurus, MkDocs, etc.)
+docs/.cache/
+docs/build/
+docs/node_modules/
+docs/.DS_Store
+
+# GitHub workflow caches (safe to ignore)
+.github/workflows/*.log
+
+# ===============================
+# ⚙️ SYSTEM / OS FILES
+# ===============================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ===============================
+# 🧰 MISC
+# ===============================
+
+# JetBrains IDEs
+.idea/
+
+# VSCode
+.vscode/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo

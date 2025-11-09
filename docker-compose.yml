@@ -5,9 +5,9 @@ services:
     image: postgres:15
     container_name: roamrush-postgres
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: roamrush_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -18,8 +18,8 @@ services:
     image: mongo:latest
     container_name: roamrush-mongo
     environment:
-      MONGO_INITDB_ROOT_USERNAME: swapnil
-      MONGO_INITDB_ROOT_PASSWORD: swap123
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
       - "27017:27017"
     volumes:
@@ -38,18 +38,17 @@ services:
       - "8080:8080"
     environment:
       # These variables will be INJECTED into application.yaml
-      DB_HOST: postgres # The service name, not 'roamrush-postgres' or 'localhost'
-      DB_PORT: 5432
-      DB_NAME: roamrush_db
-      DB_USER: user
-      DB_PASS: password
-      MONGO_HOST: mongo # The service name, not 'localhost'
-      MONGO_PORT: 27017
-      MONGO_DB_NAME: roamrush_social
-      MONGO_USER: swapnil
-      MONGO_PASS: swap123
-      # This is the NEW, CRITICAL part for your JWT "middleware"
-      JWT_SECRET: "uGFiTq2R3YIAR7q80A+bBw/NnZJgVLc62eD9jR8cEHQ="
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      MONGO_HOST: ${MONGO_HOST}
+      MONGO_PORT: ${MONGO_PORT}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASS: ${MONGO_PASS}
+      JWT_SECRET: ${JWT_SECRET}
 
 volumes:
   postgres_data:
