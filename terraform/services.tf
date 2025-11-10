@@ -67,7 +67,7 @@ resource "aws_ecs_task_definition" "frontend" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = 512 
   memory                   = 1024
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn # <-- This reference is now correct
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
@@ -77,9 +77,18 @@ resource "aws_ecs_task_definition" "frontend" {
       memory    = 1024
       portMappings = [{ containerPort = 3000 }]
       
+      # --- THIS IS THE FIX ---
+      # This block was missing or incorrect.
+      # It injects the *private* URL of your backend
+      # into the container for next.config.js to use.
       environment = [
-        { name = "API_BASE_URL", value = "http://${aws_lb.internal.dns_name}:8080" }
-      ],
+        { 
+          name = "API_BASE_URL", 
+          value = "http://${aws_lb.internal.dns_name}:8080" 
+        }
+      ]
+      # -----------------------
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -93,6 +102,7 @@ resource "aws_ecs_task_definition" "frontend" {
 }
 
 # --- 4. Frontend ECS Service ---
+# (This resource is fine, no changes needed)
 resource "aws_ecs_service" "frontend" {
   name            = "roamrush-frontend-service-${terraform.workspace}"
   cluster         = aws_ecs_cluster.main.id
