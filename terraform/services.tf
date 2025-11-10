@@ -1,3 +1,18 @@
+# --- THIS IS THE FIX (Part 1) ---
+# We must create the log group for the backend logs
+resource "aws_cloudwatch_log_group" "backend_logs" {
+  name = "/ecs/roamrush-backend-${terraform.workspace}"
+  retention_in_days = 7 # Optional: Save 7 days of logs
+}
+
+# --- THIS IS THE FIX (Part 2) ---
+# We must create the log group for the frontend logs
+resource "aws_cloudwatch_log_group" "frontend_logs" {
+  name = "/ecs/roamrush-frontend-${terraform.workspace}"
+  retention_in_days = 7 # Optional: Save 7 days of logs
+}
+# ---------------------------------
+
 # --- 1. Backend Task Definition ---
 resource "aws_ecs_task_definition" "backend" {
   family                   = "roamrush-backend-task-${terraform.workspace}"
@@ -5,8 +20,9 @@ resource "aws_ecs_task_definition" "backend" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = 1024 
   memory                   = 2048 
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn # <-- This reference is now correct
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
+  # This container definition is now valid, because the log group will exist
   container_definitions = jsonencode([
     {
       name      = "roamrush-backend"
@@ -31,13 +47,17 @@ resource "aws_ecs_task_definition" "backend" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/roamrush-backend-${terraform.workspace}"
+          # This name now correctly matches the resource we created above
+          "awslogs-group"         = aws_cloudwatch_log_group.backend_logs.name
           "awslogs-region"        = "ap-south-1" 
           "awslogs-stream-prefix" = "ecs"
         }
       }
     }
   ])
+  
+  # This "depends_on" is optional but good practice
+  depends_on = [aws_cloudwatch_log_group.backend_logs]
 }
 
 # --- 2. Backend ECS Service ---
@@ -51,6 +71,7 @@ resource "aws_ecs_service" "backend" {
   network_configuration {
     subnets         = data.aws_subnets.default.ids
     security_groups = [aws_security_group.backend_ecs.id]
+    assign_public_ip = true # <--- THIS IS THE FIX
   }
   
   load_balancer {
@@ -58,6 +79,16 @@ resource "aws_ecs_service" "backend" {
     container_name   = "roamrush-backend"
     container_port   = 8080
   }
+
+  # This prevents a common "stuck deployment" error
+  # It tells ECS to wait for the new containers to be healthy
+  # before stopping the old ones.
+  deployment_controller {
+    type = "ECS"
+  }
+  
+  # This is also good practice
+  depends_on = [aws_lb_listener.backend]
 }
 
 # --- 3. Frontend Task Definition ---
@@ -69,6 +100,7 @@ resource "aws_ecs_task_definition" "frontend" {
   memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
+  # This container definition is now valid
   container_definitions = jsonencode([
     {
       name      = "roamrush-frontend"
@@ -77,32 +109,27 @@ resource "aws_ecs_task_definition" "frontend" {
       memory    = 1024
       portMappings = [{ containerPort = 3000 }]
       
-      # --- THIS IS THE FIX ---
-      # This block was missing or incorrect.
-      # It injects the *private* URL of your backend
-      # into the container for next.config.js to use.
       environment = [
-        { 
-          name = "API_BASE_URL", 
-          value = "http://${aws_lb.internal.dns_name}:8080" 
-        }
+        { name = "API_BASE_URL", value = "http://${aws_lb.internal.dns_name}:8080" }
       ]
-      # -----------------------
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/roamrush-frontend-${terraform.workspace}"
+          # This name now correctly matches the resource we created above
+          "awslogs-group"         = aws_cloudwatch_log_group.frontend_logs.name
           "awslogs-region"        = "ap-south-1"
           "awslogs-stream-prefix" = "ecs"
         }
       }
     }
   ])
+  
+  # This "depends_on" is optional but good practice
+  depends_on = [aws_cloudwatch_log_group.frontend_logs]
 }
 
 # --- 4. Frontend ECS Service ---
-# (This resource is fine, no changes needed)
 resource "aws_ecs_service" "frontend" {
   name            = "roamrush-frontend-service-${terraform.workspace}"
   cluster         = aws_ecs_cluster.main.id
