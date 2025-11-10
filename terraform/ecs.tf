@@ -7,6 +7,8 @@ resource "aws_ecs_cluster" "main" {
 # This creates the "employee"
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "roamrush-ecs-task-exec-role-${terraform.workspace}"
+  
+  # This is the "Trust Relationship" that fixes your error
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -17,13 +19,12 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-# --- 2b. THE REAL FIX: A Custom, Explicit IAM Policy ---
+# --- 2b. The *Correct* IAM Policy (Permissions) ---
+# This policy grants the 3 permissions our container *actually* needs
 data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
-  # This policy grants the 3 permissions our container *actually* needs
   statement {
     effect    = "Allow"
     actions   = [
-      # 1. Permission to pull images from ECR
       "ecr:GetAuthorizationToken",
       "ecr:BatchCheckLayerAvailability",
       "ecr:GetDownloadUrlForLayer",
@@ -35,7 +36,6 @@ data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
   statement {
     effect    = "Allow"
     actions   = [
-      # 2. Permission to write logs
       "logs:CreateLogStream",
       "logs:PutLogEvents"
     ]
@@ -47,10 +47,7 @@ data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
 
   statement {
     effect  = "Allow"
-    actions = [
-      # 3. Permission to get our database/JWT passwords
-      "secretsmanager:GetSecretValue"
-    ]
+    actions = ["secretsmanager:GetSecretValue"]
     resources = [
       aws_secretsmanager_secret.postgres.arn,
       aws_secretsmanager_secret.mongo.arn,

@@ -2,7 +2,6 @@ resource "aws_s3_bucket" "uploads" {
   bucket = "roamrush-uploads-${terraform.workspace}-${random_id.bucket_prefix.hex}"
 }
 
-# This is the correct, separate resource for S3 public access
 resource "aws_s3_bucket_public_access_block" "uploads_pab" {
   bucket = aws_s3_bucket.uploads.id 
 

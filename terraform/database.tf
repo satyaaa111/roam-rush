@@ -9,8 +9,10 @@ resource "random_password" "mongo_pass" {
   special = false
 }
 
+# --- THIS IS THE FIX ---
 resource "aws_secretsmanager_secret" "postgres" {
-  name        = "roamrush/postgres/password-${terraform.workspace}"
+  # This "v2" makes it a brand new, unique secret
+  name        = "roamrush/v2/postgres/password-${terraform.workspace}" 
   description = "Password for RoamRush Postgres DB (${terraform.workspace})"
 }
 
@@ -19,8 +21,10 @@ resource "aws_secretsmanager_secret_version" "postgres_pass_version" {
   secret_string = random_password.postgres_pass.result
 }
 
+# --- THIS IS THE FIX ---
 resource "aws_secretsmanager_secret" "mongo" {
-  name        = "roamrush/mongo/password-${terraform.workspace}"
+  # This "v2" makes it a brand new, unique secret
+  name        = "roamrush/v2/mongo/password-${terraform.workspace}"
   description = "Password for RoamRush DocumentDB (${terraform.workspace})"
 }
 
@@ -28,6 +32,20 @@ resource "aws_secretsmanager_secret_version" "mongo_pass_version" {
   secret_id     = aws_secretsmanager_secret.mongo.id
   secret_string = random_password.mongo_pass.result
 }
+
+# --- THIS IS THE FIX ---
+# This "v2" makes it a brand new, unique secret
+resource "aws_secretsmanager_secret" "jwt_secret" {
+  name        = "roamrush/v2/jwt/secret-${terraform.workspace}"
+  description = "JWT Secret Key for RoamRush (${terraform.workspace})"
+}
+
+resource "aws_secretsmanager_secret_version" "jwt_secret_version" {
+  secret_id     = aws_secretsmanager_secret.jwt_secret.id
+  secret_string = "your-super-secret-key-that-is-at-least-256-bits-long-for-hs256"
+}
+# --- END OF FIX ---
+
 
 # --- 2. Create the PostgreSQL Database (RDS) ---
 resource "aws_db_subnet_group" "postgres" {
@@ -71,17 +89,4 @@ resource "aws_docdb_cluster_instance" "mongo_instance" {
   identifier           = "roamrush-docdb-instance-${terraform.workspace}"
   cluster_identifier   = aws_docdb_cluster.mongo.id
   instance_class       = "db.t3.medium"
-}
-
-# --- 4. Create the JWT Secret in Secrets Manager ---
-resource "aws_secretsmanager_secret" "jwt_secret" {
-  name        = "roamrush/jwt/secret-${terraform.workspace}"
-  description = "JWT Secret Key for RoamRush (${terraform.workspace})"
-}
-
-resource "aws_secretsmanager_secret_version" "jwt_secret_version" {
-  secret_id     = aws_secretsmanager_secret.jwt_secret.id
-  # This is your plain-text secret from your .env file
-  # For production, you should generate a new random_string
-  secret_string = "your-super-secret-key-that-is-at-least-256-bits-long-for-hs256"
 }
