@@ -1,4 +1,4 @@
-# Get your default VPC and subnets (simplifies this demo)
+# Get your default VPC and subnets
 data "aws_vpc" "default" {
   default = true
 }
@@ -11,9 +11,8 @@ data "aws_subnets" "default" {
 }
 
 # --- 1. Public Load Balancer Security Group ---
-# Allows anyone on the internet (0.0.0.0/0) to access our site on port 80
 resource "aws_security_group" "alb_public" {
-  name        = "roamrush-alb-public-sg"
+  name        = "roamrush-alb-public-sg-${terraform.workspace}"
   vpc_id      = data.aws_vpc.default.id
   description = "Allows HTTP traffic from the internet"
 
@@ -33,9 +32,8 @@ resource "aws_security_group" "alb_public" {
 }
 
 # --- 2. Frontend Service Security Group ---
-# Allows traffic ONLY from the Public Load Balancer
 resource "aws_security_group" "frontend_ecs" {
-  name        = "roamrush-frontend-ecs-sg"
+  name        = "roamrush-frontend-ecs-sg-${terraform.workspace}"
   vpc_id      = data.aws_vpc.default.id
   description = "Allows traffic from public ALB to frontend"
 
@@ -43,7 +41,7 @@ resource "aws_security_group" "frontend_ecs" {
     from_port       = 3000 # Your Next.js port
     to_port         = 3000
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb_public.id] # <-- ONLY from this SG
+    security_groups = [aws_security_group.alb_public.id]
   }
 
   egress {
@@ -55,9 +53,8 @@ resource "aws_security_group" "frontend_ecs" {
 }
 
 # --- 3. Internal Load Balancer Security Group ---
-# Allows traffic ONLY from the Frontend containers
 resource "aws_security_group" "alb_internal" {
-  name        = "roamrush-alb-internal-sg"
+  name        = "roamrush-alb-internal-sg-${terraform.workspace}"
   vpc_id      = data.aws_vpc.default.id
   description = "Allows traffic from frontend to backend"
 
@@ -65,7 +62,7 @@ resource "aws_security_group" "alb_internal" {
     from_port       = 8080 # Your Spring Boot port
     to_port         = 8080
     protocol        = "tcp"
-    security_groups = [aws_security_group.frontend_ecs.id] # <-- ONLY from this SG
+    security_groups = [aws_security_group.frontend_ecs.id]
   }
 
   egress {
@@ -77,9 +74,8 @@ resource "aws_security_group" "alb_internal" {
 }
 
 # --- 4. Backend Service Security Group ---
-# Allows traffic ONLY from the Internal Load Balancer
 resource "aws_security_group" "backend_ecs" {
-  name        = "roamrush-backend-ecs-sg"
+  name        = "roamrush-backend-ecs-sg-${terraform.workspace}"
   vpc_id      = data.aws_vpc.default.id
   description = "Allows traffic from internal ALB to backend"
 
@@ -87,7 +83,7 @@ resource "aws_security_group" "backend_ecs" {
     from_port       = 8080
     to_port         = 8080
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb_internal.id] # <-- ONLY from this SG
+    security_groups = [aws_security_group.alb_internal.id]
   }
 
   egress {
@@ -99,9 +95,8 @@ resource "aws_security_group" "backend_ecs" {
 }
 
 # --- 5. Database Security Group ---
-# Allows traffic ONLY from the Backend containers
 resource "aws_security_group" "database" {
-  name        = "roamrush-database-sg"
+  name        = "roamrush-database-sg-${terraform.workspace}"
   vpc_id      = data.aws_vpc.default.id
   description = "Allows traffic from backend to databases"
 
@@ -109,14 +104,14 @@ resource "aws_security_group" "database" {
     from_port       = 5432 # Postgres
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [aws_security_group.backend_ecs.id] # <-- ONLY from this SG
+    security_groups = [aws_security_group.backend_ecs.id]
   }
 
   ingress {
     from_port       = 27017 # DocumentDB (Mongo)
     to_port         = 27017
     protocol        = "tcp"
-    security_groups = [aws_security_group.backend_ecs.id] # <-- ONLY from this SG
+    security_groups = [aws_security_group.backend_ecs.id]
   }
 
   egress {
