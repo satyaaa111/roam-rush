@@ -72,3 +72,16 @@ resource "aws_docdb_cluster_instance" "mongo_instance" {
   cluster_identifier   = aws_docdb_cluster.mongo.id
   instance_class       = "db.t3.medium"
 }
+
+# --- 4. Create the JWT Secret in Secrets Manager ---
+resource "aws_secretsmanager_secret" "jwt_secret" {
+  name        = "roamrush/jwt/secret-${terraform.workspace}"
+  description = "JWT Secret Key for RoamRush (${terraform.workspace})"
+}
+
+resource "aws_secretsmanager_secret_version" "jwt_secret_version" {
+  secret_id     = aws_secretsmanager_secret.jwt_secret.id
+  # This is your plain-text secret from your .env file
+  # For production, you should generate a new random_string
+  secret_string = "your-super-secret-key-that-is-at-least-256-bits-long-for-hs256"
+}

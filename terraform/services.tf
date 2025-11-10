@@ -1,17 +1,14 @@
-# --- THIS IS THE FIX (Part 1) ---
-# We must create the log group for the backend logs
+# --- Create the log groups ---
 resource "aws_cloudwatch_log_group" "backend_logs" {
   name = "/ecs/roamrush-backend-${terraform.workspace}"
-  retention_in_days = 7 # Optional: Save 7 days of logs
+  retention_in_days = 7
 }
 
-# --- THIS IS THE FIX (Part 2) ---
-# We must create the log group for the frontend logs
 resource "aws_cloudwatch_log_group" "frontend_logs" {
   name = "/ecs/roamrush-frontend-${terraform.workspace}"
-  retention_in_days = 7 # Optional: Save 7 days of logs
+  retention_in_days = 7
 }
-# ---------------------------------
+# -----------------------------
 
 # --- 1. Backend Task Definition ---
 resource "aws_ecs_task_definition" "backend" {
@@ -22,7 +19,9 @@ resource "aws_ecs_task_definition" "backend" {
   memory                   = 2048 
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
-  # This container definition is now valid, because the log group will exist
+  # --- THIS IS THE CRITICAL FIX ---
+  # We separate plain-text "environment" variables
+  # from secure "secrets". This stops the "ssm:GetParameters" error.
   container_definitions = jsonencode([
     {
       name      = "roamrush-backend"
@@ -31,32 +30,37 @@ resource "aws_ecs_task_definition" "backend" {
       memory    = 2048
       portMappings = [{ containerPort = 8080 }]
       
-      secrets = [
-        { name = "DB_HOST", valueFrom = aws_db_instance.postgres.address },
-        { name = "DB_PORT", valueFrom = "5432" },
-        { name = "DB_NAME", valueFrom = aws_db_instance.postgres.db_name },
-        { name = "DB_USER", valueFrom = aws_db_instance.postgres.username },
-        { name = "DB_PASS", valueFrom = aws_secretsmanager_secret.postgres.arn },
-        { name = "MONGO_HOST", valueFrom = aws_docdb_cluster.mongo.endpoint },
-        { name = "MONGO_PORT", valueFrom = tostring(aws_docdb_cluster.mongo.port) },
-        { name = "MONGO_DB_NAME", valueFrom = "roamrush_social" },
-        { name = "MONGO_USER", valueFrom = aws_docdb_cluster.mongo.master_username },
-        { name = "MONGO_PASS", valueFrom = aws_secretsmanager_secret.mongo.arn },
-        { name = "JWT_SECRET", valueFrom = "your-production-jwt-secret-here-or-from-secrets-manager" }
+      # Plain-text configuration
+      "environment" : [
+        { "name": "DB_HOST", "value": aws_db_instance.postgres.address },
+        { "name": "DB_PORT", "value": "5432" },
+        { "name": "DB_NAME", "value": aws_db_instance.postgres.db_name },
+        { "name": "DB_USER", "value": aws_db_instance.postgres.username },
+        { "name": "MONGO_HOST", "value": aws_docdb_cluster.mongo.endpoint },
+        { "name": "MONGO_PORT", "value": tostring(aws_docdb_cluster.mongo.port) },
+        { "name": "MONGO_DB_NAME", "value": "roamrush_social" },
+        { "name": "MONGO_USER", "value": aws_docdb_cluster.mongo.master_username }
       ],
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          # This name now correctly matches the resource we created above
-          "awslogs-group"         = aws_cloudwatch_log_group.backend_logs.name
-          "awslogs-region"        = "ap-south-1" 
-          "awslogs-stream-prefix" = "ecs"
+      
+      # Secure, encrypted secrets
+      "secrets" : [
+        { "name": "DB_PASS", "valueFrom": aws_secretsmanager_secret.postgres.arn },
+        { "name": "MONGO_PASS", "valueFrom": aws_secretsmanager_secret.mongo.arn },
+        { "name": "JWT_SECRET", "valueFrom": aws_secretsmanager_secret.jwt_secret.arn }
+      ],
+
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group"         : aws_cloudwatch_log_group.backend_logs.name,
+          "awslogs-region"        : "ap-south-1",
+          "awslogs-stream-prefix" : "ecs"
         }
       }
     }
   ])
-  
-  # This "depends_on" is optional but good practice
+  # ----------------- END OF FIX -----------------
+
   depends_on = [aws_cloudwatch_log_group.backend_logs]
 }
 
@@ -71,7 +75,7 @@ resource "aws_ecs_service" "backend" {
   network_configuration {
     subnets         = data.aws_subnets.default.ids
     security_groups = [aws_security_group.backend_ecs.id]
-    assign_public_ip = true # <--- THIS IS THE FIX
+    assign_public_ip = true
   }
   
   load_balancer {
@@ -79,15 +83,10 @@ resource "aws_ecs_service" "backend" {
     container_name   = "roamrush-backend"
     container_port   = 8080
   }
-
-  # This prevents a common "stuck deployment" error
-  # It tells ECS to wait for the new containers to be healthy
-  # before stopping the old ones.
+  
   deployment_controller {
     type = "ECS"
   }
-  
-  # This is also good practice
   depends_on = [aws_lb_listener.backend]
 }
 
@@ -100,7 +99,6 @@ resource "aws_ecs_task_definition" "frontend" {
   memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
-  # This container definition is now valid
   container_definitions = jsonencode([
     {
       name      = "roamrush-frontend"
@@ -116,16 +114,14 @@ resource "aws_ecs_task_definition" "frontend" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          # This name now correctly matches the resource we created above
-          "awslogs-group"         = aws_cloudwatch_log_group.frontend_logs.name
-          "awslogs-region"        = "ap-south-1"
+          "awslogs-group"         : aws_cloudwatch_log_group.frontend_logs.name,
+          "awslogs-region"        : "ap-south-1",
           "awslogs-stream-prefix" = "ecs"
         }
       }
     }
   ])
   
-  # This "depends_on" is optional but good practice
   depends_on = [aws_cloudwatch_log_group.frontend_logs]
 }
 
@@ -148,4 +144,9 @@ resource "aws_ecs_service" "frontend" {
     container_name   = "roamrush-frontend"
     container_port   = 3000
   }
+  
+  deployment_controller {
+    type = "ECS"
+  }
+  depends_on = [aws_lb_listener.frontend]
 }
