@@ -23,7 +23,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - name: Build with Maven (skip tests)
-        run: mvn clean install -DskipTests # <--- THIS IS THE FIX
+        run: mvn clean install -DskipTests
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -39,4 +39,9 @@ jobs:
       - run: npm install
       - name: Run tests (or echo)
         run: echo "Skipping tests for now" # <--- THIS IS THE FIX
-      - run: npm run build # We keep this, it's a good check
+      - name: Build frontend (with dummy API_BASE_URL)
+        # We provide a placeholder URL just to satisfy the build process.
+        # This will NOT be used in your real deployment.
+        env:
+          API_BASE_URL: http://dummy-build-url.com
+        run: npm run build
