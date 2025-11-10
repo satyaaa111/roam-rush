@@ -5,6 +5,9 @@ FROM node:20 as builder
 # Set the working directory
 WORKDIR /app
 
+
+ARG API_BASE_URL
+
 # Copy package.json and package-lock.json first
 COPY package*.json ./
 
@@ -15,7 +18,7 @@ RUN npm install
 COPY . .
 
 # Run the production build
-RUN npm run build
+RUN API_BASE_URL=${API_BASE_URL} npm run build
 
 
 # --- STAGE 2: The "Runner" ---
