@@ -1,4 +1,4 @@
-# --- Create the log groups ---
+# --- Create the log groups FIRST ---
 resource "aws_cloudwatch_log_group" "backend_logs" {
   name = "/ecs/roamrush-backend-${terraform.workspace}"
   retention_in_days = 7

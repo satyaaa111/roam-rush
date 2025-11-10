@@ -34,8 +34,8 @@ resource "aws_secretsmanager_secret_version" "mongo_pass_version" {
 }
 
 # --- THIS IS THE FIX ---
-# This "v2" makes it a brand new, unique secret
 resource "aws_secretsmanager_secret" "jwt_secret" {
+  # This "v2" makes it a brand new, unique secret
   name        = "roamrush/v2/jwt/secret-${terraform.workspace}"
   description = "JWT Secret Key for RoamRush (${terraform.workspace})"
 }
