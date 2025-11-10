@@ -3,10 +3,12 @@ resource "aws_ecs_cluster" "main" {
   name = "roamrush-cluster-${terraform.workspace}"
 }
 
-# --- 2. IAM Roles for Fargate ---
-# This is now a "resource" block, which is what services.tf expects
+# --- 2a. IAM Role for Fargate ---
+# This creates the "employee"
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "roamrush-ecs-task-exec-role-${terraform.workspace}"
+  
+  # This is the "Trust Relationship" that fixes your error
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -17,10 +19,56 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_attachment" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+# --- 2b. The *Correct* IAM Policy (Permissions) ---
+# This policy grants the 3 permissions our container *actually* needs
+data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage"
+    ]
+    resources = ["*"] # ECR requires a wildcard
+  }
+  
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = [
+      aws_cloudwatch_log_group.backend_logs.arn,
+      aws_cloudwatch_log_group.frontend_logs.arn
+    ]
+  }
+
+  statement {
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = [
+      aws_secretsmanager_secret.postgres.arn,
+      aws_secretsmanager_secret.mongo.arn,
+      aws_secretsmanager_secret.jwt_secret.arn
+    ]
+  }
 }
+
+# This creates the policy in AWS
+resource "aws_iam_policy" "ecs_task_exec_policy" {
+  name   = "roamrush-ecs-task-exec-policy-${terraform.workspace}"
+  policy = data.aws_iam_policy_document.ecs_task_exec_policy_doc.json
+}
+
+# This *attaches* our new custom policy to our ECS role
+resource "aws_iam_role_policy_attachment" "ecs_task_exec_policy_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.ecs_task_exec_policy.arn
+}
+# ----------------- END OF FIX -----------------
+
 
 # --- 3. The PUBLIC Load Balancer (for Frontend) ---
 resource "aws_lb" "public" {
