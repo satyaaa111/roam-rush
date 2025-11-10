@@ -4,24 +4,10 @@ resource "aws_ecs_cluster" "main" {
 }
 
 # --- 2. IAM Roles for Fargate ---
-# (IAM policies that allow ECS to pull images from ECR and write logs)
-resource "aws_iam_role" "ecs_task_execution_role" {
+# We are now FINDING the global role, not creating it
+data "aws_iam_role" "ecs_task_execution_role" {
   name = "roamrush-ecs-task-execution-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
-    }]
-  })
 }
-
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_attachment" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
 # --- 3. The PUBLIC Load Balancer (for Frontend) ---
 resource "aws_lb" "public" {
   name               = "roamrush-public-alb"
