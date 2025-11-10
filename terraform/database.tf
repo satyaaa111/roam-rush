@@ -10,8 +10,8 @@ resource "random_password" "mongo_pass" {
 }
 
 resource "aws_secretsmanager_secret" "postgres" {
-  name = "roamrush/postgres/password"
-  description = "Password for RoamRush Postgres DB"
+  name        = "roamrush/postgres/password-${terraform.workspace}"
+  description = "Password for RoamRush Postgres DB (${terraform.workspace})"
 }
 
 resource "aws_secretsmanager_secret_version" "postgres_pass_version" {
@@ -20,8 +20,8 @@ resource "aws_secretsmanager_secret_version" "postgres_pass_version" {
 }
 
 resource "aws_secretsmanager_secret" "mongo" {
-  name = "roamrush/mongo/password"
-  description = "Password for RoamRush DocumentDB"
+  name        = "roamrush/mongo/password-${terraform.workspace}"
+  description = "Password for RoamRush DocumentDB (${terraform.workspace})"
 }
 
 resource "aws_secretsmanager_secret_version" "mongo_pass_version" {
@@ -31,13 +31,13 @@ resource "aws_secretsmanager_secret_version" "mongo_pass_version" {
 
 # --- 2. Create the PostgreSQL Database (RDS) ---
 resource "aws_db_subnet_group" "postgres" {
-  name       = "roamrush-postgres-subnet-group"
+  name       = "roamrush-postgres-subnet-group-${terraform.workspace}"
   subnet_ids = data.aws_subnets.default.ids
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier           = "roamrush-postgres-db"
-  instance_class       = "db.t3.micro" # Small, cheap instance
+  identifier           = "roamrush-postgres-db-${terraform.workspace}"
+  instance_class       = "db.t3.micro"
   engine               = "postgres"
   engine_version       = "14"
   allocated_storage    = 20
@@ -52,12 +52,12 @@ resource "aws_db_instance" "postgres" {
 
 # --- 3. Create the MongoDB-compatible Database (DocumentDB) ---
 resource "aws_docdb_subnet_group" "mongo" {
-  name       = "roamrush-docdb-subnet-group"
+  name       = "roamrush-docdb-subnet-group-${terraform.workspace}"
   subnet_ids = data.aws_subnets.default.ids
 }
 
 resource "aws_docdb_cluster" "mongo" {
-  cluster_identifier      = "roamrush-docdb-cluster"
+  cluster_identifier      = "roamrush-docdb-cluster-${terraform.workspace}"
   engine_version          = "4.0.0"
   master_username         = "roamrushadmin"
   master_password         = random_password.mongo_pass.result
@@ -68,7 +68,7 @@ resource "aws_docdb_cluster" "mongo" {
 
 resource "aws_docdb_cluster_instance" "mongo_instance" {
   count                = 1
-  identifier           = "roamrush-docdb-instance"
+  identifier           = "roamrush-docdb-instance-${terraform.workspace}"
   cluster_identifier   = aws_docdb_cluster.mongo.id
   instance_class       = "db.t3.medium"
 }
