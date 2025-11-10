@@ -5,7 +5,7 @@ resource "aws_ecs_task_definition" "backend" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = 1024 # 1 vCPU
   memory                   = 2048 # 2GB RAM
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn       = data.aws_iam_role.ecs_task_execution_role.arn
 
   # This is the container definition
   container_definitions = jsonencode([
@@ -35,7 +35,7 @@ resource "aws_ecs_task_definition" "backend" {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = "/ecs/roamrush-backend"
-          "awslogs-region"        = "us-east-1"
+          "awslogs-region"        = "ap-south-1"
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -71,7 +71,7 @@ resource "aws_ecs_task_definition" "frontend" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = 512 # 0.5 vCPU
   memory                   = 1024 # 1GB RAM
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn       = data.aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
@@ -89,7 +89,7 @@ resource "aws_ecs_task_definition" "frontend" {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = "/ecs/roamrush-frontend"
-          "awslogs-region"        = "us-east-1"
+          "awslogs-region"        = "ap-south-1"
           "awslogs-stream-prefix" = "ecs"
         }
       }
