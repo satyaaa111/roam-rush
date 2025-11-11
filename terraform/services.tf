@@ -19,9 +19,6 @@ resource "aws_ecs_task_definition" "backend" {
   memory                   = 2048 
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
-  # --- THIS IS THE CRITICAL FIX ---
-  # We separate plain-text "environment" variables
-  # from secure "secrets". This stops the "ssm:GetParameters" error.
   container_definitions = jsonencode([
     {
       name      = "roamrush-backend"
@@ -59,7 +56,6 @@ resource "aws_ecs_task_definition" "backend" {
       }
     }
   ])
-  # ----------------- END OF FIX -----------------
 
   depends_on = [aws_cloudwatch_log_group.backend_logs]
 }
