@@ -57,8 +57,9 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
           IMAGE_TAG: ${{ steps.image_tag.outputs.tag }}
         run: |
+          # This build-arg fix is from our previous debugging
           docker build \
-            --build-arg API_BASE_URL="http://dummy-build-url.com" \
+            --build-arg API_BASE_URL="http://dummy-build-time-url.com" \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -f frontend/Dockerfile ./frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
