@@ -1,4 +1,4 @@
-name: CD - Deploy to Production (AWS ECS)
+name: CD - Deploy to PRODUCTION (AWS ECS)
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - main
 
 jobs:
-  # We will only have ONE job that does everything in order.
   build-and-deploy-production:
     runs-on: ubuntu-latest
     environment: production
@@ -16,7 +15,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      # 2. Configure AWS Credentials (used by all steps below)
+      # 2. Configure AWS Credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -26,12 +25,12 @@ jobs:
       
       # 3. Login to ECR
       - name: Login to Amazon ECR
-        id: login-ecr # We give this step an ID
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       # 4. Set a valid image tag
       - name: Set image tag
-        id: image_tag # We give this step an ID
+        id: image_tag
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           echo "tag=$(date +'%Y%m%d%H%M%S')-${SHORT_SHA}" >> $GITHUB_OUTPUT
@@ -40,7 +39,6 @@ jobs:
       - name: Build and push backend image
         id: build-backend
         env:
-          # This variable now works, because 'login-ecr' ran in a previous step
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
           IMAGE_TAG: ${{ steps.image_tag.outputs.tag }}
