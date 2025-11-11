@@ -22,7 +22,6 @@ const nextConfig = {
       );
       // This will still probably crash, which is good.
     }
-    
     return [
       {
         source: '/api/v1/:path*', // Your API calls
