@@ -122,7 +122,7 @@ resource "aws_lb_target_group" "backend" {
   target_type = "ip"
   
   health_check {
-    path = "/api/v1/health"
+    path = "/actuator/health"
   }
 }
 
