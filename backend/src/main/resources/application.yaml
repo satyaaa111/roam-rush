@@ -20,11 +20,8 @@ spring:
       username: ${MONGO_USER}
       password: ${MONGO_PASS}
       authentication-database: admin
-      ssl: true
-
 jwt:
   secret: ${JWT_SECRET}
-
 # This configures the Spring Boot Actuator
 management:
   endpoint:
