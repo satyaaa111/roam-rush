@@ -9,10 +9,8 @@ resource "random_password" "mongo_pass" {
   special = false
 }
 
-# --- THIS IS THE FIX ---
 resource "aws_secretsmanager_secret" "postgres" {
-  # This "v2" makes it a brand new, unique secret
-  name        = "roamrush/v2/postgres/password-${terraform.workspace}" 
+  name        = "roamrush/v2/postgres/password-${terraform.workspace}" # v2 fix
   description = "Password for RoamRush Postgres DB (${terraform.workspace})"
 }
 
@@ -21,10 +19,8 @@ resource "aws_secretsmanager_secret_version" "postgres_pass_version" {
   secret_string = random_password.postgres_pass.result
 }
 
-# --- THIS IS THE FIX ---
 resource "aws_secretsmanager_secret" "mongo" {
-  # This "v2" makes it a brand new, unique secret
-  name        = "roamrush/v2/mongo/password-${terraform.workspace}"
+  name        = "roamrush/v2/mongo/password-${terraform.workspace}" # v2 fix
   description = "Password for RoamRush DocumentDB (${terraform.workspace})"
 }
 
@@ -33,19 +29,16 @@ resource "aws_secretsmanager_secret_version" "mongo_pass_version" {
   secret_string = random_password.mongo_pass.result
 }
 
-# --- THIS IS THE FIX ---
 resource "aws_secretsmanager_secret" "jwt_secret" {
-  # This "v2" makes it a brand new, unique secret
-  name        = "roamrush/v2/jwt/secret-${terraform.workspace}"
+  name        = "roamrush/v2/jwt/secret-${terraform.workspace}" # v2 fix
   description = "JWT Secret Key for RoamRush (${terraform.workspace})"
 }
 
 resource "aws_secretsmanager_secret_version" "jwt_secret_version" {
   secret_id     = aws_secretsmanager_secret.jwt_secret.id
+  # This is the plain-text secret your new JwtService.java (with UTF-8) expects
   secret_string = "your-super-secret-key-that-is-at-least-256-bits-long-for-hs256"
 }
-# --- END OF FIX ---
-
 
 # --- 2. Create the PostgreSQL Database (RDS) ---
 resource "aws_db_subnet_group" "postgres" {

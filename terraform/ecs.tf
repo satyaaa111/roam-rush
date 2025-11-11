@@ -6,8 +6,6 @@ resource "aws_ecs_cluster" "main" {
 # --- 2a. IAM Role for Fargate ---
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "roamrush-ecs-task-exec-role-${terraform.workspace}"
-  
-  # This "Trust Relationship" allows ECS to assume this role
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -19,7 +17,6 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 # --- 2b. The *Correct* IAM Policy (Permissions) ---
-# This policy grants the 3 permissions our container *actually* needs
 data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
   # ECR permissions
   statement {
@@ -122,7 +119,7 @@ resource "aws_lb_target_group" "backend" {
   target_type = "ip"
   
   health_check {
-    path = "/actuator/health"
+    path = "/actuator/health" # <-- Uses the REAL health check
   }
 }
 
