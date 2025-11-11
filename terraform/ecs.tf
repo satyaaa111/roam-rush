@@ -16,59 +16,28 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-# --- 2b. The *Correct* IAM Policy (Permissions) ---
-data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
-  # ECR permissions
-  statement {
-    effect    = "Allow"
-    actions   = [
-      "ecr:GetAuthorizationToken",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:BatchGetImage"
-    ]
-    resources = ["*"]
-  }
-  
-  # CloudWatch Logs permissions
-  statement {
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ]
-    resources = [
-      aws_cloudwatch_log_group.backend_logs.arn,
-      aws_cloudwatch_log_group.frontend_logs.arn,
-      "${aws_cloudwatch_log_group.backend_logs.arn}:*",
-      "${aws_cloudwatch_log_group.frontend_logs.arn}:*"
-    ]
-  }
-
-  # Secrets Manager permissions
-  statement {
-    effect  = "Allow"
-    actions = ["secretsmanager:GetSecretValue"]
-    resources = [
-      aws_secretsmanager_secret.postgres.arn,
-      aws_secretsmanager_secret.mongo.arn,
-      aws_secretsmanager_secret.jwt_secret.arn
-    ]
-  }
-}
-
-# Creates the policy in AWS
-resource "aws_iam_policy" "ecs_task_exec_policy" {
-  name   = "roamrush-ecs-task-exec-policy-${terraform.workspace}"
-  policy = data.aws_iam_policy_document.ecs_task_exec_policy_doc.json
-}
-
-# Attaches our new custom policy to our ECS role
-resource "aws_iam_role_policy_attachment" "ecs_task_exec_policy_attachment" {
+# --- 2b. Attach Default ECS Policy ---
+# (For ECR logs)
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_attachment" {
   role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = aws_iam_policy.ecs_task_exec_policy.arn
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# --- 2c. THE FIX: Attach Secrets Manager Policy ---
+resource "aws_iam_role_policy_attachment" "ecs_secrets_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  # This policy allows "secretsmanager:GetSecretValue"
+  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite" 
+}
+
+# --- 2d. THE FIX: Attach SSM Policy ---
+resource "aws_iam_role_policy_attachment" "ecs_ssm_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  # This policy allows "ssm:GetParameters"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
 }
 # ----------------- END OF FIX -----------------
+
 
 # --- 3. The PUBLIC Load Balancer (for Frontend) ---
 resource "aws_lb" "public" {
@@ -119,7 +88,7 @@ resource "aws_lb_target_group" "backend" {
   target_type = "ip"
   
   health_check {
-    path = "/actuator/health" # <-- Uses the REAL health check
+    path = "/api/v1/test"
   }
 }
 

@@ -36,8 +36,7 @@ resource "aws_secretsmanager_secret" "jwt_secret" {
 
 resource "aws_secretsmanager_secret_version" "jwt_secret_version" {
   secret_id     = aws_secretsmanager_secret.jwt_secret.id
-  # This is the plain-text secret your new JwtService.java (with UTF-8) expects
-  secret_string = "your-super-secret-key-that-is-at-least-256-bits-long-for-hs256"
+  secret_string = "M-s4cr3t-k3y-f0r-HS256-n33ds-t0-b3-v3ry-L0NG-and-R@nd0m-!@#$"
 }
 
 # --- 2. Create the PostgreSQL Database (RDS) ---
