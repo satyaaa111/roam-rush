@@ -86,16 +86,16 @@ resource "aws_security_group" "database" {
   vpc_id      = data.aws_vpc.default.id
   description = "Allows traffic from backend to databases"
   ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend_ecs.id]
+    from_port   = 5432 # Postgres
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.default.cidr_block]
   }
   ingress {
-    from_port       = 27017
-    to_port         = 27017
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend_ecs.id]
+    from_port   = 27017 # DocumentDB (Mongo)
+    to_port     = 27017
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.default.cidr_block]
   }
   egress {
     from_port   = 0
