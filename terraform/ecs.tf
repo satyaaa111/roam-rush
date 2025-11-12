@@ -47,6 +47,19 @@ data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
     ]
     resources = ["arn:aws:logs:*:*:*"]
   }
+  statement {
+    effect = "Allow"
+    actions = [
+      "ssmmessages:CreateControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:OpenDataChannel",
+      "ssm:DescribeSessions",
+      "ssm:GetParameters",
+      "ecs:ExecuteCommand"
+    ]
+    resources = ["*"]
+  }
 
   # --- Secrets Manager Permissions ---
   statement {
