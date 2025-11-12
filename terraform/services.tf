@@ -109,6 +109,7 @@ resource "aws_ecs_task_definition" "frontend" {
       portMappings = [{ containerPort = 3000 }]
       
       environment = [
+        { name = "NODE_ENV", value = "production" },
         { name = "API_BASE_URL", value = "http://${aws_lb.internal.dns_name}:8080" }
       ]
 
