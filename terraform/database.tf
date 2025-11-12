@@ -10,7 +10,7 @@ resource "random_password" "mongo_pass" {
 }
 
 resource "aws_secretsmanager_secret" "postgres" {
-  name        = "roamrush/v2/postgres/password-${terraform.workspace}" # v2 fix
+  name        = "roamrush/v/postgres/password-${terraform.workspace}" # v fix
   description = "Password for RoamRush Postgres DB (${terraform.workspace})"
 }
 
@@ -20,7 +20,7 @@ resource "aws_secretsmanager_secret_version" "postgres_pass_version" {
 }
 
 resource "aws_secretsmanager_secret" "mongo" {
-  name        = "roamrush/v2/mongo/password-${terraform.workspace}" # v2 fix
+  name        = "roamrush/v/mongo/password-${terraform.workspace}" # v fix
   description = "Password for RoamRush DocumentDB (${terraform.workspace})"
 }
 
@@ -30,7 +30,7 @@ resource "aws_secretsmanager_secret_version" "mongo_pass_version" {
 }
 
 resource "aws_secretsmanager_secret" "jwt_secret" {
-  name        = "roamrush/v2/jwt/secret-${terraform.workspace}" # v2 fix
+  name        = "roamrush/v/jwt/secret-${terraform.workspace}" # v fix
   description = "JWT Secret Key for RoamRush (${terraform.workspace})"
 }
 

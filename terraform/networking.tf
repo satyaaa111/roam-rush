@@ -95,7 +95,7 @@ resource "aws_security_group" "database" {
     from_port   = 27017 # DocumentDB (Mongo)
     to_port     = 27017
     protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.default.cidr_block]
+    security_groups = [aws_security_group.backend_ecs.id]
   }
   egress {
     from_port   = 0

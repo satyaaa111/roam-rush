@@ -71,7 +71,7 @@ resource "aws_ecs_service" "backend" {
   network_configuration {
     subnets         = data.aws_subnets.default.ids
     security_groups = [aws_security_group.backend_ecs.id]
-    assign_public_ip = true
+    assign_public_ip = false
   }
   
   load_balancer {
@@ -83,7 +83,10 @@ resource "aws_ecs_service" "backend" {
   deployment_controller {
     type = "ECS"
   }
-  depends_on = [aws_lb_listener.backend]
+  depends_on = [
+    aws_lb_listener.backend,
+    aws_security_group.database
+  ]
 }
 
 # --- 3. Frontend Task Definition ---
