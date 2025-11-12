@@ -89,13 +89,13 @@ resource "aws_security_group" "database" {
     from_port   = 5432 # Postgres
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.default.cidr_block]
+    security_groups = [aws_security_group.backend_ecs.id]
   }
   ingress {
     from_port   = 27017 # DocumentDB (Mongo)
     to_port     = 27017
     protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.default.cidr_block]
+    security_groups = [aws_security_group.backend_ecs.id]
   }
   egress {
     from_port   = 0
@@ -103,4 +103,12 @@ resource "aws_security_group" "database" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+resource "aws_vpc_endpoint" "secrets_manager" {
+  vpc_id              = data.aws_vpc.default.id
+  service_name        = "com.amazonaws.ap-south-1.secretsmanager"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = data.aws_subnets.default.ids
+  security_group_ids  = [aws_security_group.backend_ecs.id]
+  private_dns_enabled = false
 }

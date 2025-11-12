@@ -18,6 +18,7 @@ resource "aws_ecs_task_definition" "backend" {
   cpu                      = 1024 
   memory                   = 2048 
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
@@ -67,6 +68,7 @@ resource "aws_ecs_service" "backend" {
   task_definition = aws_ecs_task_definition.backend.arn
   desired_count   = 2 
   launch_type     = "FARGATE"
+  enable_execute_command = true
 
   network_configuration {
     subnets         = data.aws_subnets.default.ids
@@ -83,7 +85,10 @@ resource "aws_ecs_service" "backend" {
   deployment_controller {
     type = "ECS"
   }
-  depends_on = [aws_lb_listener.backend]
+  depends_on = [
+    aws_lb_listener.backend,
+    aws_security_group.database
+  ]
 }
 
 # --- 3. Frontend Task Definition ---

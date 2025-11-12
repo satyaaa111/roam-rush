@@ -14,26 +14,17 @@ spring:
 
   data:
     mongodb:
-      host: ${MONGO_HOST}
-      port: ${MONGO_PORT}
-      database: ${MONGO_DB_NAME}
-      username: ${MONGO_USER}
-      password: ${MONGO_PASS}
-      authentication-database: admin 
-
+      uri: mongodb://${MONGO_USER}:${MONGO_PASS}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}?tls=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false
+      ssl:
+        enabled: true
+      replica-set: rs0
 jwt:
   secret: ${JWT_SECRET}
-
 # This configures the Spring Boot Actuator
 management:
   endpoint:
     health:
-      # This tells Actuator to show the full details,
-      # including the status of 'db' and 'mongo'.
       show-details: always
   health:
-    # This enables the built-in health checks for databases
-    db:
-      enabled: true
-    mongo:
-      enabled: true
+    db.enabled: true
+    mongo.enabled: true
