@@ -7,7 +7,7 @@ const isProd = process.env.NODE_ENV === 'production';
 // 2. Define the backend URLs
 // API_BASE_URL comes from the terraform/services.tf file
 // It is the *private* DNS name of your internal load balancer
-const PROD_BACKEND = process.env.API_BASE_URL; 
+const PROD_BACKEND = process.env.API_BASE_URL || 'http://localhost:8080'; 
 const DEV_BACKEND = 'http://localhost:8080';
 
 const nextConfig = {
