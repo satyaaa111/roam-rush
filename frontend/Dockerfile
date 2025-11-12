@@ -1,35 +1,37 @@
-# --- STAGE 1: Builder ---
+# --- STAGE 1: The "Builder" ---
 FROM node:20 as builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-
-# ✅ Inject a harmless dummy variable at build time to avoid resolution errors
-ARG DUMMY_API_URL="http://localhost:8080"
-ENV NEXT_PUBLIC_API_BASE_URL=$DUMMY_API_URL
-
 RUN npm run build
 
-# --- STAGE 2: Runner ---
+
+# --- STAGE 2: The "Runner" ---
 FROM node:20-alpine
 WORKDIR /app
+
+# Create user/group
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
-COPY --chown=nextjs:nodejs package*.json ./
-RUN chown -R nextjs:nodejs /app
-USER nextjs
+
+# Copy package.json (still root)
+COPY package*.json ./
+
+# Install runtime deps (still root)
 RUN npm install --omit=dev
 
-# Copy the built Next.js app
+# Copy build files
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
-# ✅ Copy runtime environment variable injection script
 COPY runtime-env.sh ./runtime-env.sh
+
 RUN chmod +x ./runtime-env.sh
+
+USER nextjs
 
 EXPOSE 3000
 
-# ✅ Inject runtime env var before starting
-ENTRYPOINT ["sh", "-c", "./runtime-env.sh && npm start"]
+# Ensure script is invoked before Next.js app starts
+CMD ["sh", "-c", "./runtime-env.sh && npm start"]
