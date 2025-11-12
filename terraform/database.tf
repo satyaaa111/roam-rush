@@ -25,15 +25,8 @@ resource "aws_secretsmanager_secret" "mongo" {
 }
 
 resource "aws_secretsmanager_secret_version" "mongo_pass_version" {
-  secret_id = aws_secretsmanager_secret.mongo.id
-
-  secret_string = jsonencode({
-    MONGO_HOST     = "roamrush-docdb-cluster-${terraform.workspace}.cluster-cremik2sqs5l.ap-south-1.docdb.amazonaws.com"
-    MONGO_PORT     = "27017"
-    MONGO_DB_NAME  = "roamrush"
-    MONGO_USER     = "roamrushadmin"
-    MONGO_PASS     = random_password.mongo_pass.result
-  })
+  secret_id     = aws_secretsmanager_secret.mongo.id
+  secret_string = random_password.mongo_pass.result
 }
 
 resource "aws_secretsmanager_secret" "jwt_secret" {
