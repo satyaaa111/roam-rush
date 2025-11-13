@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const api = await getApi();
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/v1/auth/login', { email, password });
     const token = response.data.token;
     localStorage.setItem('token', token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
 
   const signup = async (username, email, password) => {
     const api = await getApi();
-    const response = await api.post('/auth/register', { 
+    const response = await api.post('/v1/auth/register', { 
         username, 
         email, 
         password 

@@ -16,7 +16,7 @@ async function loadRuntimeConfig() {
 
         // Create axios instance dynamically AFTER config is loaded
         api = axios.create({
-            baseURL: `${BASE}/api/v1`,
+            baseURL: `${BASE}/api`,
             headers: {
                 'Content-Type': 'application/json'
             }
