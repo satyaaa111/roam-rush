@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext } from 'react';
-import api from '@/lib/api'; // <-- IMPORT OUR NEW "SMART CLIENT"
+import {getApi} from '@/lib/api'; // <-- IMPORT OUR NEW "SMART CLIENT"
 
 const AuthContext = createContext({
   user: null,
@@ -39,6 +39,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
+    const api = await getApi();
     const response = await api.post('/auth/login', { email, password });
     const token = response.data.token;
     localStorage.setItem('token', token);
@@ -50,6 +51,7 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async (username, email, password) => {
+    const api = await getApi();
     const response = await api.post('/auth/register', { 
         username, 
         email, 

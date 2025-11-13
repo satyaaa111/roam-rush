@@ -1,10 +1,7 @@
 #!/bin/sh
 # runtime-env.sh — runs inside ECS container before Next.js starts
 
-echo "Injecting runtime API_BASE_URL..."
-
-cat > .env.production <<EOF
-NEXT_PUBLIC_API_BASE_URL=${API_BASE_URL}
+echo "Writing runtime-config.json from API_BASE_URL=${API_BASE_URL:-''}"
+cat > /app/public/runtime-config.json <<EOF
+{ "API_BASE_URL": "${API_BASE_URL:-''}" }
 EOF
-
-echo "NEXT_PUBLIC_API_BASE_URL=${API_BASE_URL}"

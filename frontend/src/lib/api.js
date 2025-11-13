@@ -1,57 +1,68 @@
 import axios from 'axios';
 
-// 1. Create the "smart client" instance
-const api = axios.create({
-    // This tells axios to automatically add "/api/v1" to all requests
-    baseURL: '/api/v1',
-    headers: {
-        'Content-Type': 'application/json'
-    }
-});
+let api = null;                // axios instance
+let configLoaded = false;      // to prevent double loading
 
-// 2. The "Request Interceptor" (Runs before every request)
-api.interceptors.request.use(
-    (config) => {
-        // Get the token from localStorage
-        const token = localStorage.getItem('token');
-        
-        // If the token exists, add it to the Authorization header
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        // Handle request errors
-        return Promise.reject(error);
-    }
-);
+// --- 1. Load runtime config file written by runtime-env.sh ---
+async function loadRuntimeConfig() {
+    if (configLoaded) return;
 
-// 3. The "Response Interceptor" (Runs after every response)
-api.interceptors.response.use(
-    (response) => {
-        // If the response is successful, just return it
-        return response;
-    },
-    (error) => {
-        // --- This is the key for future scalability! ---
-        // If the server returns a 401 Unauthorized (e.g., token expired)
-        if (error.response && error.response.status === 401) {
-            console.error("API Error: Token is invalid or expired.");
-            
-            // 1. Remove the bad token
-            localStorage.removeItem('token');
-            
-            // 2. Redirect to the login page
-            // (We check for 'window' to make sure this only runs in the browser)
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login';
+    try {
+        const res = await fetch('/runtime-config.json', { cache: 'no-store' });
+        const conf = await res.json();
+
+        // The final full backend URL
+        const BASE = conf.API_BASE_URL || 'http://localhost:8080';
+
+        // Create axios instance dynamically AFTER config is loaded
+        api = axios.create({
+            baseURL: `${BASE}/api/v1`,
+            headers: {
+                'Content-Type': 'application/json'
             }
-        }
-        
-        // For all other errors, just return the error
-        return Promise.reject(error);
-    }
-);
+        });
 
-export default api;
+        // Add request interceptor
+        api.interceptors.request.use(
+            (config) => {
+                const token = typeof window !== 'undefined'
+                    ? localStorage.getItem('token')
+                    : null;
+
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+                return config;
+            },
+            (error) => Promise.reject(error)
+        );
+
+        // Add response interceptor
+        api.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response && error.response.status === 401) {
+                    console.error("API Error: Token expired or invalid.");
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('token');
+                        window.location.href = '/login';
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        configLoaded = true;
+    } catch (err) {
+        console.error("Failed to load runtime-config.json!", err);
+        throw err;
+    }
+}
+
+// --- 2. Export a function that guarantees API is ready ---
+export async function getApi() {
+    if (!configLoaded) {
+        await loadRuntimeConfig();
+    }
+    return api;
+}
