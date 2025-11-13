@@ -1,26 +1,20 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV == 'production';
 
-const isProd = process.env.NODE_ENV === "production";
+// In production, backend URL comes from env (injected at build time)
+const PROD_BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL; // ← We'll set this in CI
 
-// The backend URL provided by Terraform at container runtime
-const PROD_BACKEND = process.env.API_BASE_URL || "http://localhost:8080";
-
-// Local backend for development
-const DEV_BACKEND = "http://localhost:8080";
+const DEV_BACKEND = 'http://localhost:8080';
 
 const nextConfig = {
   reactStrictMode: true,
 
   async rewrites() {
+    const backendUrl = isProd ? PROD_BACKEND : DEV_BACKEND;
     return [
       {
-        // Browser calls:   /api/v1/anything
-        // Next.js rewrites to internal ALB  
-        source: "/api/v1/:path*",
-
-        // VERY IMPORTANT:
-        // Rewrites ALWAYS keep same /api/v1 prefix
-        destination: `${isProd ? PROD_BACKEND : DEV_BACKEND}/api/v1/:path*`,
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

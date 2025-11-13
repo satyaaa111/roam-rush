@@ -43,5 +43,5 @@ jobs:
         # We provide a placeholder URL just to satisfy the build process.
         # This will NOT be used in your real deployment.
         env:
-          API_BASE_URL: http://dummy-build-url.com
+          NEXT_PUBLIC_BACKEND_URL: http://localhost:8080 
         run: npm run build
