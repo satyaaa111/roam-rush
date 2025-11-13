@@ -3,7 +3,7 @@
 const isProd = process.env.NODE_ENV === "production";
 
 // The backend URL provided by Terraform at container runtime
-const PROD_BACKEND = process.env.API_BASE_URL;
+const PROD_BACKEND = process.env.API_BASE_URL || "http://localhost:8080";
 
 // Local backend for development
 const DEV_BACKEND = "http://localhost:8080";
