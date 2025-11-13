@@ -1,10 +1,8 @@
 # frontend/Dockerfile
+
+# ---- Build Stage ----
 FROM node:20-alpine AS base
-
-# Accept build arg
 ARG NEXT_PUBLIC_BACKEND_URL
-
-# Set it as env
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 
 WORKDIR /app
@@ -12,22 +10,22 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-
-# Build with env injected
 RUN npm run build
 
-# Production stage
+# ---- Production Stage ----
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy built app
+# Copy built app and dependencies
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
 COPY --from=base /app/package.json ./package.json
+COPY --from=base /app/package-lock.json ./package-lock.json  # ← Important!
 
-RUN npm ci --omit=dev
+# Install ALL dependencies (do NOT omit dev for Next.js unless tested)
+RUN npm ci
 
 EXPOSE 3000
 
