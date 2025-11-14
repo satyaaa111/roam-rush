@@ -34,7 +34,7 @@ COPY --from=base /app/package.json ./package.json
 COPY --from=base /app/package-lock.json ./package-lock.json
 
 # Install dependencies (same as build stage)
-RUN npm ci
+RUN npm ci --only=production
 
 EXPOSE 3000
 
