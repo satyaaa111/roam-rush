@@ -50,7 +50,8 @@ export default function SignupPage() {
       // 'response' will be {"message": "User registered successfully"}
       // Now we redirect them to the login page.
       alert(response.message || 'Signup successful! Please log in.');
-      router.push('/login')
+      router.push('/login');
+      
 
     } catch (err) {
       // 7. SIGNUP FAILED!

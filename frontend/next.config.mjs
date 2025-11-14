@@ -1,20 +1,23 @@
-/** @type {import('next').NextConfig} */
-const isProd = process.env.NODE_ENV == 'production';
 
+//const isProd = process.env.NODE_ENV == 'production';
 // In production, backend URL comes from env (injected at build time)
-const PROD_BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL; // ← We'll set this in CI
-
-const DEV_BACKEND = 'http://localhost:8080';
-
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
   async rewrites() {
-    const backendUrl = isProd ? PROD_BACKEND : DEV_BACKEND;
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    if (!BACKEND_URL) {
+      throw new Error(
+        'NEXT_PUBLIC_BACKEND_URL is not defined. ' +
+        'Please set it as a build argument (e.g., --build-arg NEXT_PUBLIC_BACKEND_URL=...).'
+      );
+    }
     return [
       {
         source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
+        destination: `${BACKEND_URL}/api/:path*`,
       },
     ];
   },
