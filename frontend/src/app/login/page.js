@@ -12,16 +12,15 @@ export default function LoginPage() {
   // State for the form fields
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  
   // State for loading and errors
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
   // 3. THIS IS THE NEW LOGIN HANDLER
   const handleLogin = async (e) => {
-    e.preventDefault() // Prevent form from refreshing the page
-    setIsLoading(true)
-    setError(null)
+    e.preventDefault(); // Prevent form from refreshing the page
+    setIsLoading(true);
+    setError(null);
 
     try {
       // 4. CALL THE LOGIN FUNCTION FROM OUR HOOK
@@ -31,7 +30,7 @@ export default function LoginPage() {
       alert('Login successful!');
       // 5. LOGIN SUCCESS!
       // Redirect to the homepage
-      router.push('/home')
+      router.push('/home');
 
     } catch (err) {
       // 6. LOGIN FAILED!

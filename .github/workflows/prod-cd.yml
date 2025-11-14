@@ -47,7 +47,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      # 6. Build and Push Frontend
+      # In "Build and push frontend image" step
       - name: Build and push frontend image
         id: build-frontend
         env:
@@ -55,10 +55,15 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
           IMAGE_TAG: ${{ steps.image_tag.outputs.tag }}
         run: |
+          # Get backend URL from Terraform output or secret
+          # For now, use a secret
+          BACKEND_URL="${{ secrets.BACKEND_PUBLIC_URL }}"
+          
           docker build \
-            --build-arg API_BASE_URL="http://dummy-build-time-url.com" \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=$BACKEND_URL \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -f frontend/Dockerfile ./frontend
+
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 

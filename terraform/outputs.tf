@@ -12,3 +12,7 @@ output "ecr_frontend_url" {
   value       = aws_ecr_repository.frontend.repository_url
   description = "The URL for the frontend ECR repository"
 }
+
+output "backend_internal_url" {
+  value = "http://${aws_lb.internal.dns_name}:8080"
+}

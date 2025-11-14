@@ -1,59 +1,41 @@
-# --- STAGE 1: The "Builder" ---
-# This stage installs dependencies and builds the Next.js app
-FROM node:20 as builder
+# frontend/Dockerfile
 
-# Set the working directory
+# ---- Build Stage ----
+FROM node:20-alpine AS base
+
+ARG NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+
 WORKDIR /app
 
+# ✅ Explicitly copy both files (this is the fix!)
+COPY package.json package-lock.json ./
 
-ARG API_BASE_URL
+# Install dependencies
+RUN npm ci
 
-# Copy package.json and package-lock.json first
-COPY package*.json ./
-
-# Install all dependencies (including devDependencies for building)
-RUN npm install
-
-# Copy the rest of your frontend code
+# Copy source code
 COPY . .
 
-# Run the production build
-RUN API_BASE_URL=${API_BASE_URL} npm run build
+# Build the Next.js app
+RUN npm run build
 
 
-# --- STAGE 2: The "Runner" ---
-# This stage builds the final, small production image
-FROM node:20-alpine
+# ---- Production Stage ----
+FROM node:20-alpine AS runner
 
 WORKDIR /app
+ENV NODE_ENV=production
 
-# We don't want to run as the 'root' user (better security)
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+# Copy build output and dependencies
+COPY --from=base /app/.next ./.next
+COPY --from=base /app/public ./public
+COPY --from=base /app/package.json ./package.json
+COPY --from=base /app/package-lock.json ./package-lock.json
 
-# Copy package.json *as the root user* first
-COPY --chown=nextjs:nodejs package*.json ./
+# Install dependencies (same as build stage)
+RUN npm ci
 
-# --- THIS IS THE FIX ---
-# We must change ownership of the /app directory itself
-# so the 'nextjs' user can create the 'node_modules' folder.
-RUN chown -R nextjs:nodejs /app
-# -----------------------
-
-# NOW we switch to the non-root user
-USER nextjs
-
-# This will now work, because 'nextjs' user owns /app
-RUN npm install --omit=dev
-
-# Copy the built app from the "builder" stage
-# We can't use --chown here because we are no longer root,
-# but it's fine because we already own the /app directory.
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-
-# Expose the port Next.js runs on
 EXPOSE 3000
 
-# The command to start the app
 CMD ["npm", "start"]
