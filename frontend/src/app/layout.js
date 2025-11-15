@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
           {children}
           <Toaster 
             position="top-right"
-            duration={5000}
+            // duration={5000}
             // toastOptions={{
             //   classNames: {
             //     toast: 'w-auto md:w-[400px]', // Sets width for medium screens and up

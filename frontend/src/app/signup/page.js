@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Mail, Lock, ArrowRight, AlertTriangle } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth' // <-- 1. IMPORT THE AUTH HOOK
-
+import { useAuth } from '@/hooks/useAuth' 
+import { toast } from "sonner";
 export default function SignupPage() {
-  const router = useRouter()
-  const { signup } = useAuth() // <-- 2. GET THE SIGNUP FUNCTION
+  const router = useRouter();
+  const { signup } = useAuth();
 
   // State for loading and errors
   const [isLoading, setIsLoading] = useState(false)
@@ -35,7 +35,14 @@ export default function SignupPage() {
 
     // 4. Client-side validation first
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match!')
+      // setError('Passwords do not match!')
+      toast.error("Error", {
+          description: "Passwords do not match!",
+          action: {
+          label: "OK",
+          onClick: () => console.log("Undo"),
+          },
+      });
       return // Stop the submission
     }
 
@@ -45,13 +52,16 @@ export default function SignupPage() {
       // 5. CALL THE SIGNUP FUNCTION FROM OUR HOOK
       // We pass the 'name' field as the 'username' parameter
       const response = await signup(formData.name, formData.email, formData.password)
-      
-      // 6. SIGNUP SUCCESS!
-      // 'response' will be {"message": "User registered successfully"}
-      // Now we redirect them to the login page.
-      alert(response.message || 'Signup successful! Please log in.');
+      console.log(response.message);
+      toast("Signup Successful", {
+        description: "Go to login page",
+        // You can add action buttons, etc.
+        action: {
+          label: "OK",
+          onClick: () => console.log("Undo"),
+        },
+      });
       router.push('/login');
-      
 
     } catch (err) {
       // 7. SIGNUP FAILED!
@@ -60,11 +70,30 @@ export default function SignupPage() {
       // Check for the specific "duplicate email" error
       // Our backend sends a 409 Conflict for this
       if (err.response && err.response.status === 409) {
-        setError(err.response.data.error || 'This email is already in use.')
+        // setError(err.response.data.error || 'This email is already in use.')
+        toast.error("Sign up Failed", {
+          description: err.response.data.error || "This email is already in use.",
+          action: {
+          label: "OK",
+          onClick: () => console.log("Undo"),
+          },
+        });
       } else {
         // Generic error for "server is down," etc.
-        setError('An unexpected error occurred. Please try again.')
+        // setError('An unexpected error occurred. Please try again.')
+        toast.error("Sign up Failed", {
+          description: 'An unexpected error occurred. Please try again.',
+          action: {
+          label: "OK",
+          onClick: () => console.log("Undo"),
+          },
+        });
       }
+    } finally {
+      // 8. ADD A FINALLY BLOCK
+      // This runs after 'try' OR 'catch'
+      // This ensures the button is re-enabled
+      setIsLoading(false)
     }
   }
 

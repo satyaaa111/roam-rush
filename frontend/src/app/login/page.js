@@ -24,9 +24,6 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // 4. CALL THE LOGIN FUNCTION FROM OUR HOOK
-      // This calls our axios interceptor, hits /api/v1/auth/login,
-      // saves the token, and fetches the user.
       await login(email, password)
 
       toast("Login Successful", {
@@ -40,16 +37,29 @@ export default function LoginPage() {
       // 5. LOGIN SUCCESS!
       // Redirect to the homepage
       router.push('/home');
-
     } catch (err) {
       // 6. LOGIN FAILED!
       // The interceptor or login function threw an error.
       // We check for the specific "401 Unauthorized" error.
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-        setError('Invalid email or password. Please try again.')
+        // setError('Invalid email or password. Please try again.')
+        toast.error("Login Failed", {
+          description: "Invalid email or password. Please try again.",
+          action: {
+          label: "OK",
+          onClick: () => console.log("Undo"),
+          },
+        });
       } else {
         // Generic error for "server is down," etc.
-        setError('An unexpected error occurred. Please try again.')
+        // setError('An unexpected error occurred. Please try again.')
+        toast.error("Login Failed", {
+          description: "Unexpected Error Occurred. Please try again.",
+          action: {
+          label: "OK",
+          onClick: () => console.log("Undo"),
+          },
+        });
       }
       setIsLoading(false)
     }
