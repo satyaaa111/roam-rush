@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { FullPageSpinner } from '@/components/ui/FullPageSpinner';
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -16,9 +17,7 @@ export default function ProtectedRoute({ children }) {
   }, [user, loading, router]);
 
   if (loading) {
-    return (
-      <></>
-    );
+    return <FullPageSpinner />;
   }
 
   if (!user) {
