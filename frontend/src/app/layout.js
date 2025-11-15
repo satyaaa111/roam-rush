@@ -3,7 +3,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata = {
-  title: 'TravelConnect - Your Travel Social Network',
+  title: 'RoamRush - Your Travel Social Network',
   description: 'Connect with travelers, share experiences, and plan your next adventure',
 }
 
