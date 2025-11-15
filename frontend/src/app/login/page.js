@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mail, Lock, ArrowRight, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth' // <-- 1. IMPORT THE AUTH HOOK
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter()
@@ -27,7 +28,15 @@ export default function LoginPage() {
       // This calls our axios interceptor, hits /api/v1/auth/login,
       // saves the token, and fetches the user.
       await login(email, password)
-      alert('Login successful!');
+
+      toast("Login Successful", {
+        description: "Welcome back!",
+        // You can add action buttons, etc.
+        action: {
+          label: "OK",
+          onClick: () => console.log("Undo"),
+        },
+      });
       // 5. LOGIN SUCCESS!
       // Redirect to the homepage
       router.push('/home');
