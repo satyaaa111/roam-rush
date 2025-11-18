@@ -22,6 +22,8 @@ spring:
       replica-set: rs0
 jwt:
   secret: ${JWT_SECRET}
+  accessTokenExpirationMs: 900000     # 15 minutes
+  refreshTokenExpirationMs: 604800000 # 7 days (matches the cookie)
 # This configures the Spring Boot Actuator
 management:
   endpoint:
