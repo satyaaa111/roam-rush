@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { FullPageSpinner } from '@/components/ui/FullPageSpinner';
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -17,7 +18,7 @@ export default function ProtectedRoute({ children }) {
 
   // Show nothing (or a spinner) while loading
   if (loading) {
-    return <div>Loading...</div>; // Or your <Spinner /> component
+    return <FullPageSpinner />;
   }
 
   // If verified, show content
