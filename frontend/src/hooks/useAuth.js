@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 const AuthContext = createContext({
   user: null,
   loading: true,
+  initials: '',
   register: async () => {},       // Step 1: Signup
   verifyEmail: async () => {},    // Step 2: Verify & Login (New User)
   resendOtp: async () => {},      // Helper: Resend
@@ -18,7 +19,33 @@ const AuthContext = createContext({
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initials, setInitials] = useState('');
+  const [userName, setUserName] = useState(null);
+  
   const router = useRouter();
+
+  useEffect(() => {
+    if (user?.displayName) {
+      setUserName(user.displayName);
+    }
+  }, [user]);
+  
+  useEffect(() => {
+    setInitials(getInitials(userName));
+  }, [userName]);
+
+  function getInitials(name) {
+    if (!name) return "";
+
+    // Split by whitespace, remove empty pieces
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "";
+
+    const firstInitial = parts[0].charAt(0);
+    const lastInitial = parts.length > 1 ? parts[parts.length - 1].charAt(0) : "";
+
+    return (firstInitial + lastInitial).toUpperCase();
+  }
 
   // Helper to fetch user profile after getting a token
   // NOTE: You need to create a GET /api/users/me endpoint in your backend
@@ -133,7 +160,8 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ 
       user, 
-      loading, 
+      loading,
+      initials,
       register, 
       verifyEmail, 
       resendOtp,

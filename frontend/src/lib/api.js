@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-// Ideally, put this in .env: NEXT_PUBLIC_API_URL=http://localhost:8080
-// For now, we assume Next.js rewrites /api to your backend
 const BASE_URL = '/api'; 
 
 const api = axios.create({
@@ -9,11 +7,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // CRITICAL: Allows sending cookies (RefreshToken) to backend
+  withCredentials: true, 
 });
 
 // --- Request Interceptor ---
-// Adds the Access Token to every request if we have it
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
@@ -27,7 +24,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handles 401 errors by attempting to refresh the token
+// --- Response Interceptor ---
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -50,17 +47,34 @@ api.interceptors.response.use(
     // If error is 401 and we haven't tried refreshing yet...
     if (error.response?.status === 401 && !originalRequest._retry) {
       
-      // If the error comes FROM the refresh endpoint, we are truly doomed. Logout.
+      // ---
+      // --- THIS IS THE FIX ---
+      // ---
+      // Helper to check if we are on a public auth page
+      const isAuthPage = typeof window !== 'undefined' && 
+        (window.location.pathname.startsWith('/login') || window.location.pathname.startsWith('/signup'));
+
+      // 1. If the error comes FROM the refresh endpoint, we failed.
       if (originalRequest.url.includes('/auth/refresh')) {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('accessToken');
-            window.location.href = '/login'; 
+            // Only redirect if we are NOT on login/signup
+            if (!isAuthPage) {
+                window.location.href = '/login'; 
+            }
         }
         return Promise.reject(error);
       }
 
+      // 2. If we are on Login/Signup, IGNORE the auto-refresh logic for 401s.
+      // We want the specific page (Signup) to handle the error (e.g., "Email in use").
+      if (isAuthPage) {
+        return Promise.reject(error);
+      }
+
+      // --- END OF FIX ---
+
       if (isRefreshing) {
-        // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: (token) => {
@@ -78,29 +92,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Call the backend refresh endpoint. 
-        // We don't send a body/token; the browser sends the httpOnly cookie automatically.
         const { data } = await api.post('/auth/refresh');
-        
         const newAccessToken = data.accessToken;
         localStorage.setItem('accessToken', newAccessToken);
         
-        // Update the header for the original request
         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         
-        // Process any other requests that failed while we were refreshing
         processQueue(null, newAccessToken);
-        
-        // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         
-        // If refresh fails (e.g., cookie expired), logout user
         if (typeof window !== 'undefined') {
             localStorage.removeItem('accessToken');
-            window.location.href = '/login';
+            // Double check before redirecting here too
+            if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/signup')) {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(refreshError);
       } finally {

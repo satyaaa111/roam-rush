@@ -2,7 +2,8 @@
 
 import Navbar from '@/components/Navbar'
 import { MapPin, Calendar, Camera, Users, Heart } from 'lucide-react'
-
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
 const userStats = [
   { label: 'Countries Visited', value: '23', icon: MapPin },
   { label: 'Travel Posts', value: '147', icon: Camera },
@@ -20,6 +21,22 @@ const travelPosts = [
 ]
 
 export default function ProfilePage() {
+  const {user} = useAuth();
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    if (user?.displayName) {
+      setUserName(capitalizeWords(user.displayName));
+    }
+  }, [user]);
+  
+  function capitalizeWords(str) {
+    return str
+      .trim()
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -34,7 +51,7 @@ export default function ProfilePage() {
             </div>
             
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-800">John Doe</h1>
+              <h1 className="text-3xl font-bold text-gray-800">{userName}</h1>
               <p className="text-gray-600 flex items-center gap-2 mt-1">
                 <MapPin size={16} />
                 Travel Enthusiast • San Francisco, CA

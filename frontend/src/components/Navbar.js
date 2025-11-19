@@ -15,11 +15,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog" // 2. IMPORT SHADCN COMPONENTS
+import { useState, useEffect } from 'react';
 
 export default function Navbar() {
   const pathname = usePathname()
-  const { logout } = useAuth() // 3. GET THE LOGOUT FUNCTION
-
+  const { logout, initials } = useAuth() // 3. GET THE LOGOUT FUNCTION
   const navItems = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Journey', path: '/journey', icon: Map },
@@ -30,7 +30,7 @@ export default function Navbar() {
   ]
 
   const isActive = (path) => pathname === path
-
+  
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
@@ -63,7 +63,7 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             <Link href="/profile" className="flex items-center gap-2 hover:opacity-80">
               <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
-                JD
+                {initials}
               </div>
             </Link>
 
