@@ -31,8 +31,9 @@ export default function SignupPage() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    setError(null);
+    formData.name = formData.name.trim().replace(/\s+/g, " ");
 
     if (formData.password !== formData.confirmPassword) {
       toast.error("Error", { description: "Passwords do not match!" });
@@ -151,6 +152,8 @@ export default function SignupPage() {
                   className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-300"
                   placeholder="John Doe"
                   required
+                  minLength={2}
+                  pattern=".*\S.*"
                 />
               </div>
             </div>
