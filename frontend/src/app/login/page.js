@@ -31,7 +31,6 @@ export default function LoginPage() {
       // 5. LOGIN SUCCESS!
       // Redirect to the homepage
       router.push('/home');
-
     } catch (err) {
       // 6. LOGIN FAILED!
       // The interceptor or login function threw an error.

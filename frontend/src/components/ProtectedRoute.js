@@ -1,4 +1,3 @@
-// src/components/ProtectedRoute.jsx
 'use client';
 
 import { useEffect } from 'react';
@@ -10,20 +9,21 @@ export default function ProtectedRoute({ children }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Only redirect if we are NOT loading and have NO user
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
 
+  // Show nothing (or a spinner) while loading
   if (loading) {
-    return (
-      <></>
-    );
+    return <div>Loading...</div>; // Or your <Spinner /> component
   }
 
-  if (!user) {
-    return null;
+  // If verified, show content
+  if (user) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return null;
 }
