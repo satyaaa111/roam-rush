@@ -71,7 +71,7 @@ data "aws_iam_policy_document" "ecs_task_exec_policy_doc" {
     resources = [
       aws_secretsmanager_secret.postgres.arn,
       aws_secretsmanager_secret.mongo.arn,
-      aws_secretsmanager_secret.jwt_secret.arn
+      aws_secretsmanager_secret.jwt_secret.arn,
       aws_secretsmanager_secret.mail_password.arn 
     ]
   }
