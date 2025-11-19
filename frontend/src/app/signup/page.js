@@ -66,7 +66,7 @@ export default function SignupPage() {
           // 4. CHECK IF ALREADY VERIFIED
           if (resendMsg.includes("already verified")) {
              toast.info("Account Exists", { description: "You are already verified. Please login." });
-            //  router.push('/login');
+             router.push('/login');
           }
           // 5. CHECK IF RATE LIMITED (OTP ALREADY SENT)
           else if (resendMsg.includes("already been sent")) {
@@ -110,7 +110,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-cyan-50 via-white to-blue-50 flex items-center justify-center p-4">
       
       <OtpModal 
         isOpen={isOtpOpen}
@@ -148,7 +148,7 @@ export default function SignupPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-300"
                   placeholder="John Doe"
                   required
                 />
@@ -164,7 +164,7 @@ export default function SignupPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-300"
                   placeholder="your@email.com"
                   required
                 />
@@ -180,7 +180,7 @@ export default function SignupPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-300"
                   placeholder="••••••••"
                   required
                   minLength="8"
@@ -197,7 +197,7 @@ export default function SignupPage() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-300"
                   placeholder="••••••••"
                   required
                   minLength="8"

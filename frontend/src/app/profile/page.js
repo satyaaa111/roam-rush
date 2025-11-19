@@ -21,7 +21,7 @@ const travelPosts = [
 ]
 
 export default function ProfilePage() {
-  const {user} = useAuth();
+  const {user, initials} = useAuth();
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
@@ -42,12 +42,12 @@ export default function ProfilePage() {
       <Navbar />
       
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-gradient-to-r from-primary-500 to-cyan-500 rounded-t-2xl h-48"></div>
+        <div className="bg-linear-to-r from-primary-500 to-cyan-500 rounded-t-2xl h-48"></div>
         
         <div className="bg-white rounded-b-2xl shadow-lg p-6 -mt-16 relative">
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-end">
-            <div className="w-32 h-32 bg-gradient-to-br from-primary-400 to-cyan-500 rounded-full border-4 border-white flex items-center justify-center text-white text-4xl font-bold shadow-lg">
-              JD
+            <div className="w-32 h-32 bg-linear-to-br from-primary-400 to-cyan-500 rounded-full border-4 border-white flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+              {initials}
             </div>
             
             <div className="flex-1">
@@ -92,7 +92,7 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {travelPosts.map((post) => (
-              <div key={post.id} className="relative h-64 bg-gradient-to-br from-primary-300 to-cyan-400 rounded-lg overflow-hidden shadow-md group cursor-pointer">
+              <div key={post.id} className="relative h-64 bg-linear-to-br from-primary-300 to-cyan-400 rounded-lg overflow-hidden shadow-md group cursor-pointer">
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
                   <MapPin size={48} className="mb-2" />
                   <h3 className="text-lg font-bold text-center">{post.location}</h3>

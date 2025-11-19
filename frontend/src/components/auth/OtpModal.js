@@ -42,7 +42,7 @@ export default function OtpModal({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col items-center justify-center space-y-6 py-4">
+        <div className="flex flex-col items-center justify-center space-y-6 py-4 text-gray-900">
           <InputOTP
             maxLength={6}
             value={otp}

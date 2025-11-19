@@ -69,7 +69,7 @@ export default function HomePage() {
       <div className="max-w-2xl mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <div className="flex gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 bg-linear-to-br from-primary-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
               {initials}
             </div>
             <input
@@ -95,7 +95,7 @@ export default function HomePage() {
             <div key={post.id} className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 bg-linear-to-br from-primary-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
                     {post.avatar}
                   </div>
                   <div className="flex-1">
