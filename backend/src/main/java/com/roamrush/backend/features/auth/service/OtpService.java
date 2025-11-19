@@ -7,6 +7,7 @@ import com.roamrush.backend.features.auth.model.User;
 import com.roamrush.backend.features.auth.repository.OtpTokenRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // <-- Make sure this is imported
+import com.roamrush.backend.features.auth.service.EmailTemplate;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -25,10 +26,7 @@ public class OtpService {
         this.emailService = emailService;
     }
 
-    // ---
-    // --- THIS METHOD IS NOW MUCH SMARTER ---
-    // ---
-    @Transactional // We need this to combine our delete and create operations
+    @Transactional 
     public void generateAndSendOtp(User user, OtpPurpose purpose) {
         Instant now = Instant.now();
 
@@ -36,17 +34,14 @@ public class OtpService {
         Optional<OtpToken> existingToken = otpTokenRepository.findFirstByUserAndPurposeAndExpiresAtAfter(user, purpose, now);
 
         if (existingToken.isPresent()) {
-            // 2. If one exists, throw an error. This is our rate limit!
             throw new AuthException("An active OTP has already been sent. Please wait a few minutes before trying again.");
         }
 
-        // 3. (Good hygiene) Clean up any old, *expired* tokens for this purpose.
+        // 2. Clean up any old, expired tokens for this purpose.
         otpTokenRepository.deleteByUserAndPurposeAndExpiresAtBefore(user, purpose, now);
 
-        // 4. If no active token exists, proceed with generating a new one.
+        // 3. Generate new token
         String token = String.format("%06d", secureRandom.nextInt(999999));
-        
-        // Set expiry (e.g., 10 minutes from now)
         Instant expiresAt = now.plus(10, ChronoUnit.MINUTES);
 
         OtpToken otpToken = new OtpToken();
@@ -56,22 +51,25 @@ public class OtpService {
         otpToken.setExpiresAt(expiresAt);
         otpTokenRepository.save(otpToken);
 
-        // Send email
+        // 4. Prepare Email Content
         String subject;
-        String body;
         if (purpose == OtpPurpose.EMAIL_VERIFICATION) {
             subject = "Verify your RoamRush Account";
-            body = "Your verification code is: " + token + "\nIt will expire in 10 minutes.";
-        } else { // LOGIN_2FA
-            subject = "RoamRush Login Attempt";
-            body = "Your login code is: " + token + "\nIt will expire in 10 minutes.";
+        } else { 
+            subject = "RoamRush Login Verification";
         }
         
+        // Use the user's name, or default to "Traveller" if null
+        String name = (user.getDisplayName() != null && !user.getDisplayName().isBlank()) 
+                      ? user.getDisplayName() 
+                      : "Traveller";
+
+        // Generate the professional HTML body
+        String body = EmailTemplate.getOtpEmail(name, token);
+        
+        // Send the email (Async)
         emailService.sendEmail(user.getEmail(), subject, body);
     }
-    // ---
-    // --- END OF CHANGES ---
-    // ---
 
     public void validateOtp(User user, String token, OtpPurpose purpose) {
         OtpToken otpToken = otpTokenRepository.findByUserAndTokenAndPurpose(user, token, purpose)

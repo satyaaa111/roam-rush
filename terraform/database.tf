@@ -60,6 +60,16 @@ resource "aws_db_instance" "postgres" {
   skip_final_snapshot  = true
 }
 
+resource "aws_secretsmanager_secret" "mail_password" {
+  name        = "roamrush/v/mail/password-${terraform.workspace}"
+  description = "SMTP Password for RoamRush (${terraform.workspace})"
+}
+
+resource "aws_secretsmanager_secret_version" "mail_password_version" {
+  secret_id     = aws_secretsmanager_secret.mail_password.id
+  secret_string = "jrzczsqlratdymvl" 
+}
+
 # --- 3. Create the MongoDB-compatible Database (DocumentDB) ---
 resource "aws_docdb_subnet_group" "mongo" {
   name       = "roamrush-docdb-subnet-group-${terraform.workspace}"

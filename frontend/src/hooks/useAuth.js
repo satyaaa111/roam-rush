@@ -8,11 +8,12 @@ const AuthContext = createContext({
   user: null,
   loading: true,
   initials: '',
-  register: async () => {},       // Step 1: Signup
-  verifyEmail: async () => {},    // Step 2: Verify & Login (New User)
-  resendOtp: async () => {},      // Helper: Resend
-  login: async () => {},          // Step 1: Login Password
-  verifyLoginOtp: async () => {}, // Step 2: Verify & Login (Returning User)
+  checkEmailStatus: async () => {}, 
+  register: async () => {},
+  verifyEmail: async () => {},
+  resendOtp: async () => {},
+  login: async () => {},
+  verifyLoginOtp: async () => {},
   logout: async () => {},
 });
 
@@ -20,64 +21,62 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initials, setInitials] = useState('');
-  const [userName, setUserName] = useState(null);
-  
   const router = useRouter();
 
+  // --- 1. USER INITIALS LOGIC ---
   useEffect(() => {
     if (user?.displayName) {
-      setUserName(user.displayName);
+      setInitials(getInitials(user.displayName));
+    } else {
+      setInitials('');
     }
   }, [user]);
-  
-  useEffect(() => {
-    setInitials(getInitials(userName));
-  }, [userName]);
 
   function getInitials(name) {
     if (!name) return "";
-
-    // Split by whitespace, remove empty pieces
     const parts = name.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return "";
-
     const firstInitial = parts[0].charAt(0);
     const lastInitial = parts.length > 1 ? parts[parts.length - 1].charAt(0) : "";
-
     return (firstInitial + lastInitial).toUpperCase();
   }
 
-  // Helper to fetch user profile after getting a token
-  // NOTE: You need to create a GET /api/users/me endpoint in your backend
-  // Or simply decode the JWT here if you only need ID/Email.
+  // --- 2. FETCH PROFILE (With Guard Clause) ---
   const fetchUserProfile = async () => {
+    // SAFETY CHECK: Only attempt to fetch if we actually have a token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    
+    if (!token) {
+        // No token? Don't hit the backend.
+        return; 
+    }
+
     try {
-      // Assuming you have/will create this endpoint to get user details
-      // If not, you can skip this and just setUser({ authenticated: true })
       const response = await api.get('/users/me'); 
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user profile', error);
-      // If fetching profile fails, we might want to logout or just leave user null
+      // Note: We don't force logout here; the api.js interceptor handles 401s
     }
   };
 
+  // --- 3. INITIALIZATION ---
   useEffect(() => {
     const initAuth = async () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       
+      // If no token exists on startup, stop loading immediately.
       if (!token) {
         setLoading(false);
         return;
       }
 
+      // If token exists, try to validate it by fetching the user
       try {
-        // If we have a token, try to fetch user data
         await fetchUserProfile();
       } catch (error) {
-        // Token might be invalid, but the interceptor in api.js handles the refresh logic.
-        // If interceptor fails, it clears storage. We just sync state here.
-        if (!localStorage.getItem('accessToken')) {
+        // If local check fails hard, sync state
+        if (typeof window !== 'undefined' && !localStorage.getItem('accessToken')) {
            setUser(null);
         }
       } finally {
@@ -88,26 +87,26 @@ export function AuthProvider({ children }) {
     initAuth();
   }, []);
 
-  // --- Flow 1: Registration ---
+  // --- AUTH ACTIONS ---
 
+  // Check if email exists/is verified (for Smart Signup)
+  const checkEmailStatus = async (email) => {
+      const response = await api.post('/auth/check-email', { email });
+      return response.data; 
+  }
+
+  // Flow 1: Registration
   const register = async (email, password, displayName) => {
-    // Calls POST /api/auth/register
-    // Does NOT log in. Just triggers OTP email.
     const response = await api.post('/auth/register', { email, password, displayName });
     return response.data; 
   };
 
   const verifyEmail = async (email, otp) => {
-    // Calls POST /api/auth/verify-email
-    // Returns: { accessToken: "..." }
     const response = await api.post('/auth/verify-email', { email, otp });
     const { accessToken } = response.data;
     
-    // Save Token
     localStorage.setItem('accessToken', accessToken);
-    
-    // Fetch User Data & Set State
-    await fetchUserProfile();
+    await fetchUserProfile(); // Fetch immediately after setting token
     
     return response.data;
   };
@@ -117,41 +116,30 @@ export function AuthProvider({ children }) {
     return response.data;
   }
 
-  // --- Flow 2: Login ---
-
+  // Flow 2: Login
   const login = async (email, password) => {
-    // Calls POST /api/auth/login
-    // Does NOT log in. Just triggers 2FA OTP email.
     const response = await api.post('/auth/login', { email, password });
     return response.data; 
   };
 
   const verifyLoginOtp = async (email, otp) => {
-    // Calls POST /api/auth/verify-otp (Note the different endpoint)
-    // Returns: { accessToken: "..." }
     const response = await api.post('/auth/verify-otp', { email, otp });
     const { accessToken } = response.data;
 
-    // Save Token
     localStorage.setItem('accessToken', accessToken);
-
-    // Fetch User Data & Set State
-    await fetchUserProfile();
+    await fetchUserProfile(); // Fetch immediately after setting token
 
     return response.data;
   };
 
-  // --- Logout ---
-
+  // Logout
   const logout = async () => {
     try {
-      // Call backend to delete Refresh Token from DB and clear Cookie
       await api.post('/auth/logout');
     } catch (err) {
       console.error("Logout error", err);
     }
 
-    // Cleanup Client Side
     setUser(null);
     localStorage.removeItem('accessToken');
     router.push('/login');
@@ -162,6 +150,7 @@ export function AuthProvider({ children }) {
       user, 
       loading,
       initials,
+      checkEmailStatus, 
       register, 
       verifyEmail, 
       resendOtp,

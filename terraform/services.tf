@@ -37,14 +37,18 @@ resource "aws_ecs_task_definition" "backend" {
         { "name": "MONGO_HOST", "value": aws_docdb_cluster.mongo.endpoint },
         { "name": "MONGO_PORT", "value": tostring(aws_docdb_cluster.mongo.port) },
         { "name": "MONGO_DB_NAME", "value": "roamrush_social" },
-        { "name": "MONGO_USER", "value": aws_docdb_cluster.mongo.master_username }
+        { "name": "MONGO_USER", "value": aws_docdb_cluster.mongo.master_username },
+        { "name": "MAIL_HOST", "value": "smtp.gmail.com" },
+        { "name": "MAIL_PORT", "value": "587" },
+        { "name": "MAIL_USERNAME", "value": "juman60000@gmail.com" }
       ],
       
       # Secure, encrypted secrets
       "secrets" : [
         { "name": "DB_PASS", "valueFrom": aws_secretsmanager_secret.postgres.arn },
         { "name": "MONGO_PASS", "valueFrom": aws_secretsmanager_secret.mongo.arn },
-        { "name": "JWT_SECRET", "valueFrom": aws_secretsmanager_secret.jwt_secret.arn }
+        { "name": "JWT_SECRET", "valueFrom": aws_secretsmanager_secret.jwt_secret.arn },
+        { "name": "MAIL_PASSWORD", "valueFrom": aws_secretsmanager_secret.mail_password.arn }
       ],
 
       "logConfiguration": {
