@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-@plugin "tailwindcss-animate";
+
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
-/* @plugin "@tailwindcss/forms"; */
+/* Removed unknown at-rule @custom-variant — define the dark variant in tailwind.config.js (e.g. enable darkMode: 'class' or add a plugin)
+   or scope styles using the .dark selector directly, for example:
+     .dark .my-selector { ... } */
 
 /* Theme colors directly (no variables) */
 :root {
@@ -52,15 +52,15 @@
   }
 }
 
-/* Body styling */
 body {
   color: var(--color-foreground);
   background-color: var(--color-background);
 }
 
-/* Utility layer (Tailwind v4 supports inline definitions) */
-@utility text-balance {
-  text-wrap: balance;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
 
 /* Component layer replacements */
