@@ -4,7 +4,6 @@ import com.roamrush.backend.features.auth.model.OtpPurpose;
 import com.roamrush.backend.features.auth.model.OtpToken;
 import com.roamrush.backend.features.auth.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;

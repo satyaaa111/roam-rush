@@ -145,4 +145,19 @@ public class AuthService {
         cookie.setMaxAge((int) Duration.ofDays(7).getSeconds());
         response.addCookie(cookie);
     }
+
+    public void logout(String refreshToken, HttpServletResponse response) {
+        // 1. If a token exists, delete it from the DB so it can't be used again
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.deleteToken(refreshToken);
+        }
+
+        // 2. Clear the cookie by setting its Max-Age to 0
+        Cookie cookie = new Cookie("refreshToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/api/auth/refresh"); // Must match the path used when creating it
+        cookie.setMaxAge(0); // This tells the browser to delete it immediately
+        response.addCookie(cookie);
+    }
 }
