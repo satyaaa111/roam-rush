@@ -43,3 +43,4 @@ management:
   health:
     db.enabled: true
     mongo.enabled: true
+    mail.enabled: false
