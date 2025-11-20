@@ -56,10 +56,8 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 1. ALLOWED ORIGINS
-        // In production, replace "*" with your actual frontend URL (e.g., "http://roamrush-public-alb-....amazonaws.com")
-        // For now, "*" allows everyone, which fixes the 401.
-        configuration.setAllowedOriginPatterns(List.of("*")); 
+        configuration.setAllowedOriginPatterns(List.of("http://roamrush-public-alb-staging-1100858011.ap-south-1.elb.amazonaws.com" ,
+                                                       "http://localhost:3000")); 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         
