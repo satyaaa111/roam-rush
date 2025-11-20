@@ -41,7 +41,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // These endpoints are public
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/**").permitAll()
                 // These are for health checks (from your terraform)
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
